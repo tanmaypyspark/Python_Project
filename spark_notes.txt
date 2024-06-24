@@ -1,0 +1,942 @@
+###########PySpark Advanced Skills And Prepare For Jobs############
+
+##SECTION 2: Spark Architecture
+	#Spark Cluster Runtime Architecture:
+		#Spark is a distributed computing platform
+		#Spark appilication is distributed application
+		#Spark application needs a cluster
+			* Hadoop YARN
+			* Kubernetes
+			* Apache Mesos
+			* Spark Standalone
+		#What is a cluster?
+			* A pool of computers working together but viewed
+				as a single system.
+			* Example cluster configuration(If we have 10 computers, so we have)
+				#Worker Node Capacity
+					* 16 CPU cores
+					* 64 GB RAM
+				#Cluster Capacity
+					* 160 CPU cores
+					* 640 GB RAM
+		Now if we run a spark application on this cluster. We'll use the spark-submit command and submit my spark application to the cluster
+		My request will go to the YARN resource manager.The YARN resource will create one application master container on a worker node and 
+		start my application's main() method in the container ( A container is an isolated virtual runtime environment it comes with some CPU and memory allocation.)
+		For e.g., Lets assume YARN RM gave 4 CPU cores and 16 GB RAM to this container and started it on a worker node
+		Inside the container:
+			The container is running my main() method and we have two possibilities here:
+				1. Pyspark - Python
+				2. Spark -scala
+			Assume my application is written in Pyspark but spark is written in Scala, and it runs in the JAVA Virtual machine.
+			Choronology:
+				Python Wrapper (this is known as PySpark)
+					|
+				JAVA Wrapper
+					|				
+				SPARK CORE (Written in Scala,Scala is a JVM lamguage, and it always runs in the JVM)
+			So we have python code in our main() method, this Python code is designed to start a Java main() method internally.
+			Our Pyspark application will start a JVM application.
+			Once we have a JVM application-->the Pyspark wrapper will call the Java weapper using Py4J connection.
+			$ What is Py4J?
+				--> Py4J allows a Python application to call a JAva application.
+			And that's how PySpark works.
+			It's allways start a JVMapplication and call Spark APIs in the JVM. THe actual Spark application is always a Scala application running in the JVM.
+			But Pyspark is calling JAva Wrapper using Py4J and the JAVA Wrapper runs Scala code in the JVM.
+			
+			PySpark main method is my Pyspark Driver. And the JVM application here is my Application Driver.
+			Note: If we wrote a PySpark application, we would have a PySpark driver and an application driver
+				  But if wr wrote a Scala application, we have application driver only.
+			The driver doesn't perform any data processing work Instead, it'll create some executors and get the work done from them.
+			
+			After starting, the driver will go back to the YARN RM and ask for some more containers. THe RM will create some more containers on worker nodes and give them to the driver.
+			Let's assume we got 4 containera and each container comeswith 4 CPU Core and 16 GB of memory. Now the driver will start spark executor in these containers.
+			Each container will run one Spark executor, and the Spark executor is a JVM appilication. so our dricer is a JVM appilication, and our executor is also a JVM appilication.
+			These executors are responsible for ding all the data processing work.
+			The driver will assign work to the executor, monitor them, and manage the overall application, but the executors do all the data processing.
+			
+	#Spark Submit and Important Options:
+		* Spark appilication development - local machine
+		* Spark application deployment - Spark Cluster
+		* How to deploy Spark Application?
+			* Spark-submit
+		What is a Spark-submit?
+		--> A command line tool that allows you to submit the Spark applicationto the cluster.
+		General structure: spark-submit --class <main-class>--master<master-url>--deploy-mode<deploy-mode><applicaiton-jar>[application-args]
+		
+		--class   			Not applicable for PySpark [For JAVA & Sclara]
+		--master  			YARN,local[3]
+		--deploy-mode   	client or cluster
+		--conf  			spark.executor.memoryOverhead = 0.20 [default value id 10% or 0.10]
+		--driver-core  		2	
+		--driver-memory 	8G	
+		--num-executors 	4	
+		--executor-cores  	4	
+		--executor-memory  	16G
+		
+		spark-submit--master yarn --deploy-mode cluster --driver-memory 8G --num-executors 4 --executor-cores 4 --executor-memory 16G hellp-spark.py
+		scala:
+			spark-submit--class guru.learning.HelloSpark --master yarn --deploy-mode cluster --driver-memory 8G --num-executors 4 --executor-cores 4 --executor-memory 16G hellp-spark.jar
+			
+	#Deploy Modes:- Client and Cluster mode:
+		Deploy Modes:
+			* Cluster Mode
+				spark-submit --master yarn --deploy-mode cluster
+			* Client Mode
+				spark-submit--master yarn --deploy-mode client
+			In Cluster mode, driver runs in the cluster.
+			In Client mode, driver runs in the client machine.
+		When should we deploy in Client mode and when should we deploy in CLuster mode.
+		--> Always submit in cluster mode. It's unlikely that you submit your spark application in client mode.
+		Submit in Cluster mode for:
+			* No dependency on client machine
+			* Performance (facter as compare to client mode, because dirver is closer to the executors)
+		Client mode used by:
+			* spark-shell, pyspark,spark-sql
+			* Notebooks
+	#Spark Jobs - Stage, Shuffle, Task, Slots:
+		Spark Data Frame API Categories
+			* Transformations
+				*Used for transforming data
+				*Further classification
+					*Narrow Dependency
+						*Performed in parallel on data partitions
+						*Example:select(),filter(),withColumn(),drop()
+					*wide dependency
+						*Performed after grouping data from multiple partitions
+						*Example:groupBy(),repartition(),join(),cube(),rollup() and agg()
+				*Actions:
+					*Used to trigger some work(Job)
+					*Example: read(),write(),collect(),take(), and count()
+		What is block in spark code?
+			--> Start from the first line and look for action, whenever you find action, your first block ends there, and the following line starts a new block.
+		$ Spark will run each code block as one spark job. what does it mean?
+			--> Each action create a spark job and that's why we keep looking for actions to separate spark code blocks
+		$ How Spark execute code?
+			--> Once we have the logical plan, the spark driver will start breaking this plan into stages
+				The driver will look at this logical plan to find out the wide dependency transformations.
+				so the driver will break this plan after each wide dependency. The first one becomes the first stage, 
+				second goes to the second stages like this. Each stage might have 1 or more narrow dependency.
+				spark can't run this stages parallelly, should finish the first stage, and then only can start the next stage. 
+				Bez output of first stages is an input for the next stage. what ever done in stages is one spark job, 
+				and it's broken down into stages.
+		#Task:
+			The entire thing (what ever transformations is done inside a stage) of the stage becomes a task. 
+			And the final output of the stage must be stored in an exchange buffer.
+			Example --> assume in first stage we repartition our dataframe, so it'll divide the data in to two part, 
+					   so this entire thing of stage one become a task.
+		Let's call the stage 1 output as write Exchange, It'll becomes read exchange for stage 2. Spark is a distributed system
+		So the Write exchange and the read exchange may be on two different worker nodes. It may be on the same worker, but it can be on two differfnt workers
+		so We must consider a copy of data partitions from the write exchange to the read exchange. 
+		And this copy operation is popularly known as the Shuffle/Sort operation. Shuffle/Sort isn't a plan copy of the data, a lot of things happen here.
+		Summary: Shuffle/Sort will move data from the write exchange to the read exchange.
+		Note: Stages ends with a wide dependency transformation and hence it requires a shuffle/sort of the data. It's an expencive operation in the Spark Cluster.
+		
+		suppose in stage 2 we have few transformation(where,select,group by) --> From stage 1 we got 2 partitions, In stage 2 spark can execute the same plan in parallel on 
+		two partitions because we have two partitions, and this is what we call Task. So we have 2 parallel Task in stage 2.
+		Note: If we don't have any wide dependency, our logical plan will be a single-stage plan. But if we have N wide-dependency, our logical plan should have N+1 stages. Task is the smallest unit of work in a Spark job.
+		The Spark driver assign these tasks to the executor and asks them to do the work. The executorneeds the following things to perform the task,
+			1. Task Code
+			2. Data Partition
+		No. of CPU = No. of Slots = Max. No. parallel Task can be performed = No. of parallel Threads (we call them executor slots)
+		Suppose we have 16 CPUs but spark got 32 partitions that means 32 Task will be performed in a stage so we need 32 CPUs or slots, But we have 16 slots available.
+		In that case Spark will assign task all the available slots and remaning task will be waiting stage. 
+		
+		Action:
+			The last stage will send the result back to the driver over the network. The driver will collect data from all the task and present it to us.
+			If any task fails, the driver might want ot retry it. so it can restart the task at a different executor. It all retries also fail, then the driver returns an exception
+			and marks the job failed.
+	
+	#Spark SQL Engine and Query Planning
+		Apache Spark gives you two prominent interfaces to work with data:
+			1. Spark SQL
+			2. DataFrame API 
+			3. Dataset API (Scala & JAVA)
+		If you write a SQL expression, Spark consider 1 SQL expression as 1 JOB.
+		Spark SQL Engine:
+			Logical plan goes to Spark SQL Engine. Spark SQL Engine will process your logical plan in four stages, describe below:
+				1. Analysis Stage:
+						It will parse your code for errors and incorrect names.
+							e.g. let's assume scritp represents the following SQL, SELECT product_code FROM sales;  Spark doesn't know if the column is a valid column name and the data type of this column.
+							so the spark SQL Engine will look into the CAtalog to resolve the column name and its data type. This pahse will parse code and create a fully resolved logical plan.
+							Error: Analysis Exception --> If the column names don't resolve,Incorrect typecasting etc
+				2. Logical Optimization:
+						This phase applies standard rule-based optimizations to the logical plan
+				3. Physical Planning: 
+						Spark SQL takes a logical plan and generates one or more physical plans in the physical planning phase. Physical planning applies cose-based optimization.
+						The engine will create multiple plans, calculate each plan's cose, and finally select the plan with least cost.
+				4. Code Generation:
+						The Engine will generate Java byte code for the RDD operations in the physical plan.
+				
+				Spark is also said to act as a compiler bez it's use start of the art compiler technice.
+				
+		#Spark Execution Hiearchy:
+			First Hierarchy:
+				1. Driver
+				2. Worker
+				3. Executor
+			Second Hierarchy:
+				1.Jobs
+				2.Stages
+				3.Tasks
+
+##SECTION 3: Performance and Applied Understanding
+	Topic 1: Spark Memory Allocation:
+		Assume we submitted a spark application in a YARN cluster.
+		The YARN RM will allocate an application master (AM) container and start the driver JVM
+		in the container.The driver will start with some memory allocation which we requested.
+		
+		how to ask for the driver's memory?
+		--> we can ask memory using two configuration
+			1. spark.driver.memory
+			2. spark.driver.memoryOverhead
+		let's assume we asked , spark.driver.memory = 1GB -> JVM Memory
+								spark.driver.memoryOverhead = 0.01 -> max(10% or 384MB)
+		The overhead memory is used by the container process or any other non JVM process 
+		within the container.
+		
+		The driver will again request for the executor containers from the YARN.
+		The YARN RM will allocate a bunch of executor containers.
+		But how much memory do we get for each executor container?
+		--> The total memory allocated to the executor container is the sum of the following:
+			1. overhead Memory -> spark.executor.memoryOverhead
+			2. Heap Memory 	   -> spark.executor.memory
+			3. Off Heap Memory -> spark.memory.offHeap.size
+			4. Pyspark Memory  -> spark.executor.pyspark.memory
+		Max Physical memory check for YARN:
+			yarn.scheduler.maximum-allocation-mb
+			yarn.nodemanager.resource.memory-mb
+		What is the pyspark executor memory?
+		--> PySpark is not a JVM process. So we will not get anything from those 8 GBs. All you have is 800 MB of overhead memory.
+			Some 300 to 400 MB of this is constantly consumed by the container processes and other internal processes.
+			So your PySpark will get approximately 400 MB.So now you have one more limit. If your PySpark consumes more 
+			than what can be accommodated in the overhead, you will see an OOM error.
+			
+			if you look from the YARN perspective:      
+			################################################
+			##                                            ##
+			##  ################   ####################   ##
+			##  # 	Non JVM    #   # JVM Process	  #   ##
+			##  #Process Over- #   # JVM Heap Memory  #   ##
+			##  #head memory   #   #                  #   ##
+			##  ################   ####################   ##
+			##                                            ##
+			################################################
+			
+	Topic 2: Spark Memory Management:
+		
+		####################################
+		## Executor Process Memory View   ##
+		####################################
+		##                                ##
+		##	############################  ##
+		##  #                          #  ##
+		##  #      800 MB Overhead     #  ##
+		##  #                          #  ##
+		##  ############################  ##
+		##                                ##
+		##	############################  ##
+		##  #						   #  ##
+		##  #                          #  ##
+		##  #                          #  ##
+		##  # 	  800 MB JVM Heap      #  ##
+		##  #                          #  ##
+		##  #                          #  ##
+		##  #                          #  ##
+		##  ############################  ##
+		##                                ##
+		####################################
+		
+	    spark.executor.memory = 8GB
+		spark.executor.core = 4
+		##The memory view of the Spark executor. 
+		Heap memory is broken into 3: (Worker Node)
+			1. Reserved Memory 300 MB (Fixed Reserve for spark engine)
+			2. Spark Memory 4620 MB (60% of (8000 MB - 300 MB)) [spark.memory.fraction = 0.6]
+			3. User Memory 3080 MB   (40% of (8000 MB - 300 MB)) [leftover after spark memory(40%)]
+		1. Reserved Memory: 
+			we can't use it.
+		2.Spark Memory:
+			used for DataFrame
+			 1. Operations
+			 2. Caching
+	    3. User Memory:
+			1. User-defined data structure
+			2. spark internal metadata
+			3. UDFs Created by the users
+			4. RDD conversion operation
+			5. RDD lineage and dependency
+	   
+	    Spark Memory {4620 MB}:
+			1. Storage Memory Pool {2310 MB} (spark.memory.storageFraction = 0.5) [Cache memory for DataFrame]
+			2. Executor Memory Pool {2310 MB} (Buffer memory for DataFrame Operations)
+			
+		##The memory view of the CPU Cores.
+		spark.executor.core = 4
+		
+		####################################
+		##  Executor Process Memory View  ##
+		####################################
+		##                                ##
+		##	############################  ##
+		##  #   	CPU Slot           #  ##
+		##  ############################  ##
+		##   	  						  ##
+		##  ############################  ##
+		##  #   	CPU Slot           #  ##
+		##  ############################  ##
+		##                                ##
+		##	############################  ##
+		##  #   	CPU Slot           #  ##
+		##  ############################  ##
+		##  						      ##
+		##  ############################  ##
+		##  #   	CPU Slot           #  ##
+		##  ############################  ##           
+		##  							  ##
+		####################################
+	    
+		So we have one executor JVM, 2310 MB storage pool, another 2310 MB executor pool and four threads to share these two memory pools.
+		Each slot/task get 2310/4 MB. That's static memory managment. And Spark used to assign task memory using this static method before spark 1.6
+		But now they changed it and implemented a unified memory manager.
+		The unified memory manager tries to implement fair allocation amongst the active tasks.
+		[ Let's assume I have only 2 active tasks. I have 4 slots, but I have only 2 active tasks. So the unified memory manager can allocate all the available execution memory amongst the 2 active tasks.
+			So the point is there is nothing reserved for any task. The task will demand the execution memory, and the unified memory manager will allocate it from the pool. If the executor memory pool is fully consumed,
+			the memory manager can also allocate executor memory from the storage memory pool as long as we have some free space.]
+		
+		we can ask core by using spark.executor.cores
+		In General, Spark recommends two or more cores per executor, but we should not go beyond five cores.
+		More than five cores cause excessive memory managment overhead and contention so they recommend stopping at five cores.
+		
+		## SPARK Memory Configurations:
+			1. spark.executor.memoryOverhead
+			2. spark.executor.memory
+			3. spark.memory.fraction
+			4. spark.memory.storageFraction
+			5. spark.executor.cores
+			6. spark.memory.offHeap.enabled
+			7. spark.memory.offHeap.size
+			8. spark.executor.pyspark.memory
+	
+	Topic 3: Spark Adaptive Query Execution:
+		Spark Adaptive Query Execution Offers following features:
+			1. Dynamically coalescing shuffle partitions
+			2. Dynamically switching join strategies
+			3. Dynamically optimizing skew joins
+		* Shuffle operation is critical for Spark performance
+		* We can tune it using spark.sql.shuffle.partitions
+		* Tuning spark.sql.shuffle.partitions is complex for following reasons
+			* Small number of partitions cause	
+				* Large Partition size
+				* Task needs large amount of memory
+				* May cause OOM exceptions
+			* Large number of partitions cause
+				* Small/tiny partitions size
+				* Many network fetch causing inefficient network I/O
+				* More burden for Spark TAsk Schedular
+		* Enable AQE to dynamically set shuffle partitions
+			* Determine and set the best shuffle partition number
+			* Combine or coalesce the small partitions
+	    
+		## AQE Configurations:
+			1. spark.sql.adaptive.enabled [Default value is False]
+			2. spark.sql.adaptive.coalescePartitions.initialPartitionNum [Initial number of shuffle partitions, Dynamically determining the best number and setting that value is applied later,
+										AQE starts with this value. This config works as the max number of shuffle partiton. No default value is set, if we don't set, spark will set it equals to spark.sql.shuffle.partitions]
+			3. spark.sql.adaptive.coalescePartitions.minPartitionNum [No Default value, if we don't set this value spark will set it equals to spark.default.parallelism]
+			4. spark.sql.adaptive.advisoryPartitionSizeInBytes [the default conf is 64 MB. It works as an advisory size of the shuffle partitions during adaptive optimization, 
+					So this configuration takes effect when Spark coalesces small shuffle partitions or splits skewed shuffle partition]
+			5. spark.sql.adaptive.coalescePartitions.enabled [Default value is TRUE, if you set this value to False, Spark AQE will not combine or coalesce smaller partitions]
+			
+	Topic 4: Spark AQE Dynamic Join Optimization:
+.
+	
+
+####################### Spark Interview Question
+
+Q.1 To Processing 25GB data in Spark
+		1. How many CPU Cores are required?
+		2. How many executors are required?
+		3. How much executor memory is required?
+		4. How is the total memory required?
+	A.   
+		1. @ By default spark creates one partition for each block of file (block being 128 MB by default)
+		
+		25 GB = 25 * 1024 MB = 25600 MB
+		Number of partitions = 25600/ 128 MB = 200 Partitions
+		
+		Number of CPU cores = Number of Partition = 200
+		
+		2. @ To get better job performance in spark , researchers have found that we can take 2 to 5 max core for each executor
+			Avg CPU cores for each executors = 4
+			no of executor = 200/4 = 50
+			this menas each executor has 4 cpu cores or partition
+		
+		3. @Expected memory for each core = min 4 * ( default partition size)
+		
+			Each executors memory = cpu cores per executor * (4 * default partition size)
+								  = 4 * 4 * 128 MB
+								  = 2 GB		
+		Executor memory is not less that 1.5 times of spark reserved memory(single core executor memory should not be less than 450 MB)
+		
+		4. Total memory = no of executors * each executor memory
+					 = 50 * 2 GB
+					 = 100 GB
+Q.2 What is data SKEW?
+A. When the data are not balanced between workers, we call the data skewed.
+	One partition is big and another partitions are half of that or less. Need more memory for the big partitions, 
+	we can't increase the partition
+	memory to handle the skewed join beacuse memory wastage.
+	
+	Spark comes with some good approach:-->
+		1. Enable the spark AQE, so that large partition split into 2 or more partitions.
+			we can use: 
+					1. spark.sql.adaptive.enable = True
+					1. spark.sql.adaptive.skewJoin.enable = True
+
+Q.3 Describe SCD Types?
+A. A slowly changing dimension is a dimension that stores & manages both current & historical data over 
+	time and implemented as one of the most critical
+   ETL tasks in tracking the history of dimension records
+   
+   Mainly 4 types of SCD's are popularly:
+	1. SCD 0 : Attribute of dimension which never change their values. Like DOB, Blood_Gorup
+	2. SCD 1 : Gives Overwriting on exisiting data. (an instance where old data is overwritten with new data. 
+													The old data is lost as it is not stored anywhere)(like emp address, salary)
+	3. SCD 2 : Maintaing no of times data change (like history as creating another another dimension records) 
+		(like sales data, order data)
+	4. SCD 3 : Maintaing one time history in new column. a new column is added to track the previous value.(Like
+	product pricing or financial reporting)
+
+Q.4 What is index and what is the difference between cluster index and non cluster index
+A.
+	Index: Indexes are special lookup tables that need to be used by the database search engine to speed up data retrieval.
+
+  1. A cluster index defines the order in which data is physically stored in a table. For Example : A Dictonary book
+		on the otherside a non cluseter index, index is stored at one place & table data is stored in another place. For Example: A Book index
+  
+  2.  A table can have only one cluster index. but a table can have multiple non- cluster index
+  
+  3.  Cluster index is fuster. Non cluster index is slower.
+  
+Q.5 RDD Vs DataFrame Vs Dataset?
+
+A. RDD --> Resiliant Distributaed dataset, Immutable, resileant, Fault tolerance
+	RDD:
+		1. Type Safe ()
+		2. Developer has to take care of optimizations
+		3. Not as good as dataset in performance
+		4. Not memory efficient
+		5. High memory used
+		6. Java, Scala,Python, R
+		7. No schema
+		8. No SQL support
+	DataFrame:
+		1. Not type safe
+		2. Auto optimization using Catalyst optimizer
+		3. Performance not as good as dataset
+		4. Not memory efficient
+		5. High memory is used
+		6. Java, Scala, Python,R
+		7. Schema
+		8. SQL support
+	Dataset:
+		1. Type safe()
+		2. Auto optimization
+		3. Better performance
+		4. more memory efficient
+		5. low memory is used
+		6. Java, Scala
+		7. Schema
+		8. SQL support
+	in RDD if you want to perform join, filter, group by at a same time on a large data
+	spark assume that developer is take care the optimization and know the code processing 
+	end to end, it means developer should know the execution planning.
+	But for dataframe and dataset spark use catalyst optimization to optimize better performance.
+
+Q.6 Serialization vs De-Serialization?
+A. Serialization refers to converting objects into a stream of bytes & vice-verse(de-serialization)
+   in an optimal way to transfer it over nodes of network or store it in a file/memory buffer.
+   
+   JVM(Object) --> Serialization (Conver into JVM objects into bytes) --> De-Serialization-->JVM Object
+
+Q.7 Wide vs Narrow Transformations?
+A. Narrow --> Narrow transformations are operations that can be computed based on a single partition of the input data. 
+			In other words, each partition of the parent RDD/DataFrame can be transformed independently, 
+			without requiring data from other partitions. Narrow transformations do not require data shuffling or data exchange 
+			between partitions. Examples of narrow transformations include map, filter, flatMap, union and select.
+	
+	Wide --> Wide transformations are operations that require data from multiple partitions of the input data to be combined or 
+			shuffled across the cluster. These transformations involve data movement and can be more expensive than narrow transformations. 
+			Wide transformations require data shuffling or data exchange between the partitions. 
+			Examples of wide transformations include groupByKey, reduceByKey, join, repartition, and coalesce.
+Q.8 What is shuffle in spark?
+A. The shuffle is Spark's mechanism for redistributing data so that it's grouped differently across RDD partitions.
+
+Q.9 Describe Spark Joins ?
+A. This is a optimization technice. Developer used to modify the settings and properties of Spark to ensure 
+	that the resources are utilized properly and the jobs are executed quickly.There are mainly 3 type of joins in spark:
+	1. Broadcast Join
+	2. Shuffle Hash Join
+	3. SortMerge Join
+		
+	1. Broadcast Join :
+		It broadcast the small table data over all the nodes, to avoid shuffle.
+		If we have 1 small table (<10MB) and 1 big table (~50GB). In that case this join is broadcast the data over all the nodes to avoid the shuffling .
+		Ex: df1.join(broadcast(df2))
+	2. Shuffle Hash Join:
+		It is an expensive join as it involves both shuffling and hashing.Also, it requires memory and computation for maintaining a hash table.
+		Shuffle Hash Join is performed in two steps :
+		Step 1 : 
+			Shuffling: The data from the Join tables are partitioned based on the Join key. 
+			It does shuffle the data across partitions to have the same Join keys of the record assigned to the corresponding partitions.
+		Step 2:
+			Hash Join: A classic single node Hash Join algorithm is performed for the data on each partition.
+		
+		Note: To use the Shuffle Hash Join, spark.sql.join.preferSortMergeJoin needs to be false.
+		When to use:
+			Shuffle hash join works well-
+			1. when the dataframe are distributed evenly with the keys you are used to join and
+			2. when dataframes has enough number of keys for parallelism.
+		
+		Note:  A Hash table is defined as a data structure used to insert, look up, and remove key-value pairs quickly
+	3. SortMerge Join:
+		Shuffle Sort-merge Join (SMJ) involves shuffling of data to get the same Join key with the same worker, 
+		and then performing the Sort-merge Join operation at the partition level in the worker nodes.
+		
+		NOTE: This is Spark’s default join strategy, Since Spark 2.3.
+			 The default value of spark.sql.join.preferSortMergeJoin has been changed to true.
+		
+		Partitions are sorted on the Join key before the Join operation.
+		It has 3 phases:
+		1. Shuffle Phase: Both large tables will be repartitioned as per the Join keys across the partitions in the cluster.
+		2. Sort Phase: Sort the data within each partition parallelly.
+		3. Merge Phase: Join the sorted and partitioned data. It is merging the dataset by iterating over the elements and 
+			joining the rows having the same value for the Join keys.
+Q.10 What is hash in spark?
+A. A function that takes an input value and produce a fixed size, deterministic o/p value which is usually a numarical represtation of the i/p.
+
+Q. what is the difference between reduceByKey vs groupBy key
+A. groupByKey groups values by keys and returns them as lists, 
+	while reduceByKey groups values by keys and applies a reduction function to compute the sum of values for each key.
+	
+	1. GroupBy: is better for performing group by operation when the data is distributed across the cluster.
+	2. ReduceBy: is better when performing aggregation operation and you need to return the same output as the source type
+	3. FoldBy : is better when performing agg operation and you need to return the same output as the source rdd type. 
+			Here you get option for specifying the agg operation while defining this method.
+	
+	4. aggregateBy: is better while performing agg and you want to have a different output type than source rdd.
+	
+	val rdd1 = spark.sparkContext.parallelize(Seq(("key1", 1), ("key2", 2), ("key1", 3), ("key2", 4)))
+	val rdd2 = rdd1.groupByKey()
+	
+	val reduced = rdd.reduceByKey(_ + _)
+
+Q.11 Repartition vs coalesce
+A. Both are control the number of partition but there is a difference repartition does a full shuffle & create a new partition with data 
+	that distribute evenly and coalesce used existing partitions to minimize the amount of data that's shuffle.
+	Coalesce is faster than repartition.
+	Repartition(numPartition, cols) --> Hash based partition 
+	repartitionByRange(num,col)--> Range of values, Data Sampiling to determine partition range.
+	
+Q.12 Persist vs Cache() 
+A. Persist:
+		1. More fexible, offering various storage level(memory-only, disk only, etc)
+		2. Provide finer control over how & when data is stored.
+		3. Offer a balance b/w perform & storage.
+		4. use when dealing with large data
+	Cache:
+		1. Specific to storing data in memory.
+		2. Generally used for quickly accessing frequently used datasets
+		3. Limited storage option.
+		4. When we have enough memory.
+Memory-only: Store data as de-serialized JAVA Object in the JVM,Quick acess but high time consumption
+Memory-only serialization: store as serialized JVM reducing memory overhead
+MEMORY_AND_DISK; Store RDD as deserialized Java objects in the JVM. 
+		If the RDD does not fit in memory, store the partitions that don't fit on disk, 
+		and read them from there when they're needed.
+DISK_ONLY:	Store the RDD partitions only on disk.
+OFF_HEAP: (experimental) Similar to MEMORY_ONLY_SER, but store the data in off-heap memory. This requires off-heap memory to be enabled.
+
+Q.13 Broadcast Variable vs accumulators
+A. Broadcast:
+		1. Shared & immutable dataset
+		2. Serialized only once per worker
+		3. cached on workers for future use
+		4. Lazy serialization
+		5. Must fit in the task memory
+		6. read acess
+	Accumulators:
+		1. Global mutable variable
+		2. Can Update them per row basic
+		3. Can implemented counter & sum
+		4. Only write access
+		bad_record = spakr.SparkContext.accumulator(0)
+		bad_record.add(1)
+
+Q.14 How to increase partition number?
+A. df = df.repartition(number_of_partitions)
+
+Q.14 How to decrese partition number?
+A. df = df.Coalesce(number_of_partitions)
+
+Q.15 How to check no of partition in a dataframe
+A. df.rdd.getNumPartitions()
+
+Q.16 what is UDF, How to use it?
+A. UDF is user define function, When there is not a suitable built in function for a perticular task, developer can create there funtions
+	and they can use that.
+	def fun(str):
+		return str.split('/')[-1].split('.')[-1]
+	split_file_name = udf.register(fun, StringType())
+	
+	
+Q.17 PartitionBy vs BucketBy
+A. Partition the data according to the distinct column. It means dividing large dataset into smaller & more manageable parts 
+	called partition.
+   Each partition contains a subset of the data & can be processed in parallel, improving the performance of operations like 
+	filter, agg, join
+   
+   Bucketing is a form of partitioning that groups similar data together in a single partition. Unlike regular partitioning, 
+   bucketing is based on the value of the data rather than the size of the dataset.
+   
+   Partition:
+	used to partition a DF into smaller chanks based on the values of 1 or more columns. Each parttion is then 
+	store as a separated file in the file system.
+	
+   Bucketing:
+	Used to create fixed size hash-based buckets based on the values in 1 or more columns.
+	
+Q.18 Delta Live tables vs Delta Lakes
+A. Delta Live tables:
+	1. Also known as delta tables. it is designed for real time data processing. They offer ACID txn & streaming data processing & 
+		quering
+	2. Strore structured sata in a table format, support schema, enforsment that the structure & data type of the tables can be 
+		define & enforce
+	3. Provide advance data processing capability, including txn data modifing, support update & delete on existing data.
+	
+  Data Lake:
+	1. Centralized repository that store large amount of row, structured,semi-structured & unstructured data.
+	2. More fexiable & can store data in it's row format
+	3. Storage layer for row data & required additional processing framework such as Apache Spark.
+	
+Q.19 Synapse vs ADLS
+A. Both are the centralized repository but ADLS can't store data in a structured way that means we can't know the Schema, where in syapse 
+	schema is available. ADLS doesn't support indexing but synapse support indexing.
+	
+Q.20 what is spark-submit
+A.  used to launch spark applications on a cluster or we can say  it's a entry point of spark framework
+
+Q.21 what is databrick workflows? what is databrick job
+A. Databricks is a cloud-based platform offering a managed Apache Spark environment and various data science tools. 
+	Databricks Workflows is a specific service within this platform designed for orchestrating data processing, machine learning, 
+	and analytics pipelines.
+	
+
+	Here are some key features of Databricks Workflows:
+
+	* **Visual Workflow Definition:** It allows you to define complex workflows with tasks like data processing steps, 
+	model training, and data visualization using a drag-and-drop interface.
+	* **Task Dependencies:** You can define dependencies between tasks, ensuring tasks run in the correct order based on 
+	their data requirements.
+	* **Scheduling and Monitoring:** Workflows can be scheduled to run on specific schedules or triggered by events 
+	(e.g., new data arrival). They also provide monitoring capabilities to track the status and performance of each workflow execution.
+	* **Integration with Databricks Services:** Databricks Workflows integrates seamlessly with other 
+	Databricks services like Databricks Jobs and Delta Lake for a unified data processing and analytics environment.
+
+	**Databricks Job:**
+
+	Databricks Jobs is another service offered by the Databricks platform. It allows you to run data processing and analysis applications 
+	in a managed environment. Here's how Databricks Jobs differs from Workflows:
+
+	* **Focus on Single Tasks:** Databricks Jobs are designed for executing individual tasks or scripts, 
+						while Workflows are for orchestrating multi-step workflows with dependencies.
+	* **Execution Options:** Databricks Jobs offer various execution options like interactive runs in notebooks, scheduled runs, 
+	or triggered runs based on specific events.
+	* **Scalability and Management:** Databricks Jobs manage cluster resources and handle scaling for your applications.
+
+	In simpler terms, Databricks Jobs focus on running individual data processing tasks, while Databricks Workflows orchestrate entire 
+	pipelines consisting of multiple tasks with dependencies.
+
+Q.22 Example of some pyspark functions? when you use it? give an exapmle?
+A. There are a lot of functions present in pyspark, such as col, lit, greatest, least, input_file_name, when, otherwise,agg,sum,etc
+   on my last project where we migrate the legacy script like perl & oracle package into Pyspark, there I used all these functions.
+   if i give an example is like if we want to take a dission based on a column value we can use when & Otherwise, if we want to assign a 
+   some value in a column we can use lit().
+   
+Q.23 How you optimize your spark job?
+A. 
+	Data Partitioning:** partitioning large datasets based on frequently used columns allows Spark to
+					access only relevant data partitions during queries. This significantly reduces processing time for 
+					specific data subsets.
+	
+	Caching:** 		Frequently accessed data can be cached in memory across worker nodes. This eliminates redundant 
+					computations and data access from slower storage for subsequent tasks that require the same data, 
+					leading to faster processing.
+	
+	Code Optimization:** Optimizing the code within your Spark jobs can improve performance. 
+					This includes using efficient data structures, avoiding unnecessary shuffles (data movement between nodes), 
+					and leveraging vectorized operations for faster computations.
+	
+	Resource Management:**  Properly allocating resources like CPU cores and memory to Spark jobs ensures 
+						efficient utilization of the cluster.
+
+Yes, from the beginin I try to optimize my code. I followed few steps to optimize when I develope something.
+	On my last project we have to read some inforce file but it based on some line of bussiness to avoide memory cosumption and reduce time consumtion
+	I use python class to read a file.
+	I use broadcast join when ever the dataframe is very small, and remove the duplicate data to optimize the code.
+	
+Q.24 why spark is a lazy evulutation?
+A. We can divide spark into two part 1. Action 2. Transformations. when ever there is any transformation like when, filter, agg, groupBy
+	spark store those in memory and can't run those block of code, until and unless we call a Action like display,show,count, saveAsText, write
+	This the reason spark is a lazy evolution, it's a good approach to avoid unnecessery code run.
+
+Q.25 Full Load vs Incremental Load
+A. Full load is to load the data after delete all the data present in a table, useally we use full load for a small table where records are very less.
+  But for Incremental load we load only modified data into the table, suppose we have a table having 500 milion data in it, 
+  it's not possible to delete and load because it's time consumming that's why we use incremental load, there we compare all the row and load only 
+  updated row.
+
+Q.26 How you get the data from oracle or sql to ADLS?
+
+Q.27 Create a rdd, and then convert it into dataframe?
+A.  
+	sc=SparkContext("Local","AppFabioCarqui")
+	data = [("Alice", 25), ("Bob", 30), ("Charlie", 28)]
+	rdd= sc.parallelize(data) 
+	Note : parallelize is a function in SparkContext that is used to create a Resilient Distributed Dataset 
+	(RDD) from a local Python collection.
+	#Convert it into Dataframe:
+		df = rdd.toDF()
+	or 
+	
+	schema = StructType([StructField('Name',StringType()),
+				StructField('Age',IntegerType())])
+	df = rdd.toDF(schema)
+	
+Q28. when reffering to azure databricks, what exactly it mean to 'auto-scale' a cluster of nodes?
+A. In Azure Databricks, auto-scaling refers to the automatic adjustment of the number of worker nodes in a cluster based 
+	on the workload it's handling. This helps optimize resource utilization and costs by:
+	
+	Scaling up: When your workload demands more processing power (e.g., running complex jobs with a lot of data), 
+	Databricks automatically adds additional worker nodes to the cluster. This increases the available resources for 
+	parallel processing and improves job execution speed.
+	
+	Scaling down: Conversely, when the workload is low (e.g., during idle periods or after a job finishes), 
+	Databricks can automatically remove worker nodes from the cluster. This reduces the number of resources being used and 
+	lowers your overall cost.
+	
+	Here are some key benefits of auto-scaling in Azure Databricks:
+	
+	Improved resource utilization: You only pay for the resources you actually use, as the cluster size adapts to the workload.
+	Enhanced job performance: By scaling up during demanding jobs, auto-scaling helps ensure jobs run faster and experience less processing delays.
+	Reduced costs: By scaling down during idle periods, you avoid paying for unused resources.
+	There are two main types of auto-scaling available in Azure Databricks:
+	
+	Standard auto-scaling: This is the simpler option and suitable for basic workloads. It reacts to changes in cluster utilization by 
+	adding or removing nodes in predefined increments (typically 4 nodes at a time).
+	Enhanced auto-scaling (available in select regions): This offers more fine-grained control and optimization. 
+	It considers factors like workload volume, job completion status, and shuffle file size to dynamically adjust 
+	the number of nodes while minimizing potential performance impacts.
+
+Q.29 what is unity catalog:
+A. Unity catalog is a databrocks premium service which offer centralized governance
+	# Configuring unity catalog requires following:
+		a. Metastore root directory
+		b. Add User identity
+	# Data Model : Catalog--> schema --> objects (Tables, views and functions)
+	# Attach premium workspaces
+	# Use SQL GRANT to manage fine-grained access control.
+
+Q.30 what is spark instances?
+A. In the context of Apache Spark, a Spark instance isn't a single program or process.
+	It refers to a runtime environment where Spark applications execute. This environment can take a few different forms:
+	Local, Mesos, YARN
+	The Databricks runtime environment itself isn't inherently local, Mesos, or YARN. It's a software configuration that can be 
+	deployed on top of different cluster managers. However, Databricks, as a managed service, takes care of the underlying 
+	infrastructure and typically runs on YARN or Mesos in production environments.
+	
+Q.31 Tables in spark:
+A. In Apache Spark, you can interact with data using two main table types: internal (managed) tables and external tables. 
+	These differ in how Spark manages the data and metadata (information about the table).
+
+	**Internal Tables (Managed Tables):**
+
+	* **Data Management:** Spark manages both the data and the metadata for internal tables. 
+			The data itself is stored in the default location specified by the warehouse directory within the Spark configuration.
+	* **Benefits:**
+		* Simpler management: Spark takes care of data location and lifecycle.
+		* Suitable for temporary or frequently changing data.
+		* Can leverage optimizations provided by Spark for data storage format.
+	* **Drawbacks:**
+		* Data is tied to Spark's internal storage location.
+		* Dropping an internal table removes both data and metadata.
+
+	**External Tables:**
+
+	* **Data Management:** Spark manages only the metadata (schema definition) for external tables. 
+		The actual data resides in an external storage location like HDFS (Hadoop Distributed File System), 
+		S3 (Amazon Simple Storage Service), or a relational database.
+	* **Benefits:**
+		* Flexible data location: Data can be stored in any compatible storage system, independent of Spark.
+		* Sharing data across applications: External tables allow sharing data between different Spark applications or with other tools that can access the same storage location.
+		* Preserves data even if the table is dropped: Dropping an external table only removes the metadata from Spark's catalog, not the data itself.
+	* **Drawbacks:**
+		* Requires manual data management: You are responsible for ensuring data availability and consistency in the external storage location.
+		* Might require additional configuration: You might need to specify the data format and location explicitly in the table definition.
+
+	**Choosing Between Internal and External Tables:**
+
+	* Use internal tables when:
+		* You want Spark to manage the data lifecycle.
+		* The data is temporary or frequently changing.
+		* You want to leverage Spark's optimizations for data storage format.
+	* Use external tables when:
+		* The data already resides in an external storage location.
+		* You want to share data across applications or tools.
+		* You don't want Spark to manage data deletion upon dropping the table.
+
+	Here's a table summarizing the key differences:
+
+	| Feature                 | Internal Table (Managed) | External Table           |
+	|-------------------------|-------------------------|---------------------------|
+	| Data Management        | Managed by Spark          | User-managed              |
+	| Metadata                | Managed by Spark          | Managed by Spark          |
+	| Data Location           | Spark's warehouse directory | User-specified location    |
+	| Dropping the Table      | Removes data and metadata | Removes metadata only      |
+	| Sharing Data            | Not ideal                 | Can be shared               |
+
+######################################## DATABRICKS ####################################
+################## DataBricks###############
+Dash configuration : - 
+			DTB runtime version : 13.3 LTS (spark 3.4.1and scala 2.12)
+			worker Type : Standard_D8s_V3 Min_worker :2, Max_worker:59 [ 32GB , 8 cores]
+			Driver Type : Standard_D8s_V3 [ 32GB, 8 Core] 1 driver
+			terminate time 15 min
+			
+### Databricks utils:
+	dbutils:
+			fs : Manipulates the DDFS from the console
+			notebook: Utilities for the control flow of a notebook
+			widgets: Methods to create and get bound value of input widgets inside notebook
+			
+		dbutils.fs:
+				mount(source,mountPoint,encryptionType,extraConfigs): Mount the given source directory into DBFS at the given mount point
+				unmount(mountPoint): Delete a DBFS mount point.
+				updateMount(source, mountPoint, encryptionType, extraConfigs): similar to mount(), but updates an existing mount point(if presnet) insted of creating a new one
+				cp(from, to, recurse(boolen)): copies a file or directory, possibly across FileSystems.
+				mkdirs(dir): create the given directory if does not exist.
+				mv(from, to, recurse): Moves a file or directory
+				rm(dir,recurse): remove a file or directory
+	
+		dbutils.notebook:
+			exit(): This method lets you exit a notebook with a value('string value')
+			run(path,timeoutSecond(int),agr(map/dict)): THis method runs a notebook and returns its exit value
+		
+		dbutils.widgets:
+			combobox(name, defaultValue, choice): Create a combobox input widget with the given name.
+			dropbox(): create a dropbox
+			get(name): Retrieves current value of an input widget
+			multiselect(): create a multiselect input widget with a given name.
+			remove(name): Remove an input widget from the notebook
+			removeAll: Removes all widget in the notebook
+			text(name,defaultValue,label): Create a text input widget with a given name and default value
+	
+	####### Mount #########
+	config = {'fs.azure.account.auth.type':'OAuth',
+			  'fs.azure.account.oauth.provider.type':'org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider',
+			  'fs.azure.account.oauth2.client.id':ClientId,
+			  'fs.azure.account.oauth2.client.secret':ClientSecret,
+			  'fs.azure.account.oauth2.client.endpoint': Endpoint}
+	dbutils.fs.mount(
+		source= 'abfss://'+container_name+'@'+Storage_account_name+'.dfs.core.windows.net/'
+		+mount_root+'/',
+		mount_point = par_mount_point,
+		extraConfigs = config)
+		
+		##check the mount:
+		dbutils.fs.ls(par_mount_point)
+		
+		##Databricks scret:
+		#How to get the secret from valut:
+			keyValutName = 'keyabc23'
+			
+			#ApplicationID
+			ClientId = dbutils.secrets.get(scope = keyValutName, key = 'ClientId')
+			#Client Secret:
+			ClientSecret = dbutils.secrets.get(scope = keyValutName, key = 'ClientSecret')
+			
+########################################SQL #######################################
+Q.1 What is Normalization
+A. It's a database design technice that organizes tables in a manner that reduce redundancy (useless) & dependency of data.
+    @ to avoid insertion,updation & deletetion anomaly
+	@ It provides larger tables into smaller tables & links them using relationships(PK,FK)
+	
+	1NF:
+		A. A column or attribute of a table cann't hold multiple values.
+		B. It should hold only atomic values.
+		c. Each record should be unique
+	2NF:
+		A. It should bein the 1NF
+		B. All non-key attribute are fully functional dependent on the PK, In simple words it should not have partial dependency.
+	3NF:
+	 A. It's in 2NF
+	 B. There is no trasitive functions dependency, A TF dependency is when changing a non-key column, might cause any of the 
+		other non-key columns to change. To avoid this, create a new table.
+Q.2 What is ACID properties:
+	A -> Atomocity
+	C -> Consistency
+	I -> Isolation
+	D -> Durability
+Q.3 what is PK,FK, Serogate key
+A. 
+	Candidate key:
+		A set of one or more fields/ columns that can identify a record uniquely in a table. There can be multiple candidate keys in one table.
+	PK:
+		It's the first key used to identify one and only one instance of an entity uniquely and it can not accept null or duplicates values.
+	FK:
+		It's the column of the table used to point to the primary key of another table. can be Null or duplicate.
+	Super Key:
+		A set of one or more than one key that can be used to identify a record uniquely in a table.
+	Alternate key:
+		A key that can work as a primary key, A candidate key that currently not a PK.
+	Unique key:
+		Can be used to uniquely identify, one or more field can be declared as a unique key. This key can hold Null value
+
+Q.4 What is CTE stands for in SQL?
+A. Common table expression, a temp results set that can be referenced within a select, insert,update or delete statement
+
+Q.5 What is DDL,DML,DCL,TCL
+A. DDL:
+		it's stand for Data Defination Language. Ex: Create, Drop, Alter, Truncate, Comment, Rename
+   DQL:
+		Data Query Language, Ex : Select
+   DML:
+		Data manipulation Language. Ex: Insert, Update, Delete, Lock
+   DCL:
+		Data Control Language. Ex: Grant, Revoke
+   TCL:
+		Transaction Control Language. Ex: Commit, Rollback
+
+Q.6 Explain Window functions in SQL
+A -->
+	A window function performs a calculation across a set of tables rows that are somehow related to the current row.
+	1. Sum:
+		select dep_name, 
+		sum(salary) over(partition by dept_name order by dept_name) as total_exp
+		from emp_det
+	2. ROW_NUMBER:
+		select emp_id, emp_name,
+		row_number() over(order by salary) as row_number 
+		from emp_det
+	3. RANK vs DENSE_RANK
+	select *, rank() over(partition by ab order by cd) as rn from table
+	4. DENSE_RANK same approache
+	# RANK() would give the identical rows a rank of 2, then skip rank 3,4, so the next would be 5
+		where dense_rank give all the identical rows a rank of 2, but the following row would be 3,no rank skipped.
+	5.NTILE for %
+	 select * ,
+	 ntile(4) over(partition by dep order by name) from tbl
+	6. LAG() & LEAD()
+	select *,
+	LAG(salary) over(partition by department order by salary) as previous_salary,
+	LEAD(salary) over(partition by department order by salary) as leading_salary from table.
+	

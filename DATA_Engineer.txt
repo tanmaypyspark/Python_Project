@@ -1,0 +1,191 @@
+## Data Engineering Fundamentals (30%)
+
+**Q: Explain the concept of ETL/ELT and their key differences?**
+
+**A: ETL (Extract-Transform-Load) and ELT (Extract-Load-Transform)** are two common data integration approaches used to 
+move data from various sources to a target system, often a data warehouse. Here's a breakdown of each and their key differences:
+
+* **ETL:**
+    * **Extract:** Data is extracted from various sources (databases, APIs, flat files, etc.).
+    * **Transform:** Extracted data is cleaned, validated, and transformed into a consistent format 
+	suitable for the target system. This often involves data cleansing, schema changes, and aggregations. 
+    * **Load:** Transformed data is loaded into the target system. This might involve a staging area for 
+	temporary storage before final loading.
+
+* **ELT:**
+    * **Extract:** Similar to ETL, data is extracted from various sources.
+    * **Load:** Extracted data is directly loaded into the target system (data lake or warehouse) in its raw or semi-raw format.
+    * **Transform:** Once loaded, the data is transformed within the target system. This can leverage the processing power of 
+	the data warehouse itself or utilize specialized tools.
+
+**Key Differences:**
+
+* **Transformation Timing:** ETL transforms before loading, while ELT transforms after loading.
+* **Data Staging:** ETL often requires a dedicated staging area for data transformation, 
+	while ELT can avoid it, potentially reducing processing time.
+* **Flexibility:** ELT offers more flexibility for handling diverse data sources with varying 
+	formats since the transformation happens within the target system. 
+	However, complex transformations might require additional development effort in the target environment.
+
+**Q: Describe the different types of data sources you've worked with (e.g., databases, APIs, flat files).**
+
+**A:** In my experience, I've worked with a variety of data sources, including:
+
+* **Structured Data Sources:**
+    * **Relational Databases:** These are widely used for storing structured data in a tabular format (e.g., MySQL, PostgreSQL, Oracle). 
+	They provide well-defined schemas and efficient access methods for querying specific data.
+    * **NoSQL Databases:** These offer flexibility for handling unstructured or semi-structured data (e.g., MongoDB, Cassandra). 
+		They are often used for large datasets with varying schema requirements.
+* **Unstructured Data Sources:**
+    * **Flat Files:** These are simple text files with data organized in rows and columns (e.g., CSV, TSV). 
+	They are a common way to share data between different systems due to their simplicity.
+    * **APIs (Application Programming Interfaces):** These provide programmatic access to data from external 
+	applications or services. They allow for real-time or scheduled data retrieval based on specific API calls.
+* **Streaming Data Sources:**
+    * **Apache Kafka/Apache Flume:** These are message brokers or streaming data platforms used for capturing and 
+	ingesting real-time data feeds from various sources. They enable continuous data processing pipelines.
+
+
+**Q: How do you handle data quality issues like missing values or inconsistencies?**
+
+**A:** Data quality is a critical aspect of data engineering. Here's how I approach data quality issues:
+
+* **Identification:** I utilize data profiling techniques to identify data quality issues like missing values, 
+	inconsistencies, and invalid formats. This can involve tools for data exploration and analysis.
+* **Data Cleaning:** Based on the identified issues, I implement data cleaning techniques:
+    * **Missing Values:** Depending on the data and context, I might use imputation methods 
+	(e.g., mean/median imputation, category-specific values) or remove rows with excessive missing values.
+    * **Inconsistencies:** Data validation rules are established to catch inconsistencies in data formats or values. 
+	Cleaning steps like standardization or normalization might be applied to ensure consistency.
+* **Documentation:** I document the identified data quality issues and the applied cleaning techniques for 
+	future reference and maintainability of the data pipeline. This ensures transparency and facilitates troubleshooting.
+
+**Q: Explain the concept of data partitioning and its benefits for data warehousing.**
+
+**A:** Data partitioning is a technique used to logically divide large tables in a data warehouse based on specific columns 
+	(e.g., date, region, customer ID). This improves performance and manageability:
+
+* **Improved Query Performance:** Partition pruning allows queries to access only relevant data partitions instead of 
+	scanning the entire table. This significantly speeds up retrieval for queries focusing on specific partitions.
+* **Scalability:** Data warehouses can be easily scaled by adding or removing partitions as data volume grows. 
+		This allows for efficient storage and management of massive datasets.
+* **Efficient Operations:** Data maintenance tasks like backups, deletes, or updates can be performed on individual partitions instead of the entire table. This reduces processing time and improves overall efficiency.
+
+
+## Spark and Distributed Processing (20%)
+
+**Q: Explain the Apache Spark ecosystem and its core components (Spark SQL, Spark Streaming, etc.).**
+
+**A:** The Apache Spark ecosystem is a suite of tools designed for large-scale data processing and analytics. Here's a breakdown of 
+	its core components:
+
+* **Spark Core:** This is the foundation of Spark, providing the distributed processing engine that manages tasks across a cluster of 
+		machines. It handles task scheduling, communication between worker nodes, and memory management.
+* **Spark SQL:** This component enables large-scale SQL queries on structured data stored in various data formats. 
+	It leverages Spark's distributed processing capabilities to perform efficient analytics on massive datasets.
+* **Spark Streaming:** This framework is designed for real-time data processing of continuous data streams. 
+	It allows you to ingest, process, and analyze data streams from sources like Kafka or Flume in near real-time.
+* **Spark MLlib:** This library provides a collection of machine learning algorithms for scalable machine learning tasks on
+		distributed datasets. It offers functionalities for building, training, and evaluating various machine learning models.
+
+These are just some of the core components. The Spark ecosystem also includes other tools like Spark GraphX for graph processing and 
+	SparkR for using R within the Spark framework.
+
+**Q: Describe how Spark achieves fault tolerance and data recovery in distributed processing.**
+
+**A:** Fault tolerance is crucial for ensuring reliable processing in a distributed environment. 
+		Spark employs several mechanisms to achieve this:
+
+* **Lineage Tracking:** Spark tracks the dependencies between operations in a job. If a task fails, 
+	Spark can identify the dependent tasks and re-execute them using the available data from successful preceding tasks. 
+		This minimizes data loss and avoids complete job restarts.
+* **In-Memory Computing:** Spark prioritizes keeping intermediate data in memory across worker nodes. 
+	This allows for faster task re-execution in case of failures compared to relying solely on disk storage.
+* **Checksums:** Spark calculates checksums for data partitions. If a partition becomes corrupt, the checksum mismatch is detected during task execution, and Spark can recover the data from a healthy replica.
+
+These mechanisms work together to ensure data consistency and job completion even if individual worker nodes encounter failures.
+
+**Q: How do you optimize Spark jobs for performance? (e.g., data partitioning, caching)**
+
+**A:** Optimizing Spark jobs for performance involves various techniques:
+
+* **Data Partitioning:** As mentioned earlier, partitioning large datasets based on frequently used columns allows Spark to
+ access only relevant data partitions during queries. This significantly reduces processing time for specific data subsets.
+* **Caching:** Frequently accessed data can be cached in memory across worker nodes. This eliminates redundant 
+	computations and data access from slower storage for subsequent tasks that require the same data, leading to faster processing.
+* **Code Optimization:** Optimizing the code within your Spark jobs can improve performance. 
+		This includes using efficient data structures, avoiding unnecessary shuffles (data movement between nodes), 
+		and leveraging vectorized operations for faster computations.
+* **Resource Management:**  Properly allocating resources like CPU cores and memory to Spark jobs ensures 
+		efficient utilization of the cluster.
+
+**Q: Have you used any libraries like PySpark or Scala for working with Spark? If so, showcase your knowledge of their functionalities for data manipulation and transformations.**
+
+**A:** Yes, I have experience working with Spark using libraries like PySpark and potentially Scala (depending on the role). 
+	Here's a brief overview of their functionalities for data manipulation and transformations:
+
+* **PySpark:** This Python API provides a user-friendly interface for interacting with Spark. It allows you to:
+    * Load data from various sources (e.g., CSV, JSON, databases) into Spark DataFrames and Datasets.
+    * Perform data transformations using powerful operations like filtering, selecting specific columns, joining DataFrames, and applying various functions.
+    * Utilize built-in functions for data cleaning, aggregations, and other data manipulation tasks.
+
+* **Scala Spark API:** Similar to PySpark, the Scala API offers functionalities for data manipulation and transformations. It provides a lower-level and more performant approach for experienced Scala programmers who can leverage the full capabilities of Spark.
+
+Both PySpark and Scala Spark API allow you to build complex data pipelines for processing and analyzing large datasets efficiently within the Spark ecosystem. 
+
+
+## Cloud Platforms and Data Warehousing (20%)
+
+**Q: Discuss the advantages of using cloud platforms like AWS/Azure for Data Engineering tasks.** 
+(Optional: If you have experience with specific platforms, showcase your knowledge)
+
+**A:** Cloud platforms like AWS and Azure offer significant advantages for data engineering tasks:
+
+* **Scalability and Elasticity:** Cloud platforms provide on-demand resources that can be easily scaled up or down based on 
+		processing needs. This eliminates the need for upfront investment in physical infrastructure and allows you to pay only for 
+		the resources you use.
+* **Cost-Effectiveness:**  Cloud pricing models are often pay-as-you-go, reducing costs associated with maintaining on-premise 
+	infrastructure. You only pay for the compute resources and storage utilized for your data pipelines.
+* **Managed Services:** Cloud platforms offer a wide range of managed data services like data lakes 
+	(e.g., Amazon S3, Azure Data Lake Storage), data warehousing solutions (e.g., Amazon Redshift, Azure Synapse Analytics), 
+	and big data processing frameworks (e.g., Amazon EMR, Azure HDInsight). 
+		These services simplify data management and reduce operational overhead for data engineers.
+* **Accessibility and Collaboration:** Cloud-based data pipelines are accessible from anywhere with an internet connection, 
+	enabling easy collaboration and remote work for data engineering teams.
+* **Integration with Other Services:** Cloud platforms offer a rich ecosystem of integrated services  for data processing, analytics, 
+	and machine learning. This allows for seamless integration of your data pipelines with other functionalities within the cloud environment.
+
+**Additionally, if you have experience with specific platforms, you can mention them and elaborate on their functionalities for data engineering tasks.** For example, you could discuss:
+
+* **AWS Services:** Mention specific services like Amazon S3 for object storage, AWS Glue for data cataloging, AWS Lambda for serverless functions within data pipelines.
+* **Azure Services:** Discuss Azure Data Factory for orchestrating data pipelines,
+ Azure Databricks for distributed data processing using Apache Spark, Azure Blob Storage for scalable data storage.
+
+**Q: Explain the key considerations for designing a data warehouse schema for efficient data analysis.**
+
+**A:** Designing an efficient data warehouse schema is crucial for optimizing data analysis and querying. 
+Here are some key considerations:
+
+* **Dimensional Modeling:** Utilize dimensional modeling techniques to organize data into dimensions (descriptive attributes) 
+	and facts (quantitative measures). This allows for efficient querying and analysis of specific data subsets.
+* **Denormalization:**  Strategic denormalization can improve query performance by introducing controlled redundancy. 
+		However, it's important to balance query performance gains with the increased storage requirements and complexity of maintaining data consistency across denormalized tables.
+* **Data Partitioning:** Partitioning warehouse tables based on frequently used columns (e.g., date, product category) 
+		enables faster retrieval for specific data subsets during queries.
+* **Data Typing:**  Enforce appropriate data types (e.g., integer for product ID, date format for transaction timestamps) 
+	to ensure data integrity and improve query performance by allowing for optimized data processing.
+* **Indexing:**  Create appropriate indexes on frequently used columns to accelerate data retrieval during queries.
+
+**Q: Have you worked with tools like AWS Redshift or Azure Synapse Analytics? 
+Describe your experience with data warehousing solutions.**
+
+**A:** Yes, I have experience working with data warehousing solutions like  (mention the specific tools you've used, e.g., AWS Redshift,
+ Azure Synapse Analytics). Here's how I can showcase my experience:
+
+* **Data Warehouse Design:** I can describe my involvement in designing data warehouse schemas based on dimensional modeling 
+	principles for efficient data analysis.
+* **Data Loading and Transformation:** I can explain my experience with loading data into the data warehouse from various sources and performing necessary transformations to ensure data quality and consistency.
+* **Query Optimization:** I can discuss strategies I've employed to optimize queries on the data warehouse, such as leveraging partitioning and indexing for faster retrieval.
+* **Security and Access Control:** If applicable, I can mention my experience with implementing security measures and access controls for the data warehouse to ensure data governance and compliance.
+
+By highlighting your experience with specific data warehousing solutions and the tasks you've performed, you demonstrate your understanding of these tools and your ability to contribute to data warehousing projects.

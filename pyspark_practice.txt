@@ -1,0 +1,77 @@
+############## Pyspark ################
+##Write a quesry to publish those in the second format
+Input = '''Name Sub Marks
+	('Rudra','Math',79),
+	('Rudra','Eng',60),
+	('Shivu','Math',68),
+	('Shivu','Eng',59),
+	('Anu','Math',65),
+	('Anu','Eng',80)'''
+results = '''Name  Math Eng
+    Rudra 79   60
+    Shivu 68   59
+    Anu 65   80'''
+
+data = [('Rudra','Math',79),
+	('Rudra','Eng',60),
+	('Shivu','Math',68),
+	('Shivu','Eng',59),
+	('Anu','Math',65),
+	('Anu','Eng',80)]
+schema = StructType([
+  StructField('Name',StringType(),True),
+  StructField('Sub',StringType(),True),
+  StructField('Marks',IntegerType(),True)
+])
+
+input_df = spark.createDataFrame(data,schema)
+input_df.groupBy('Name').pivot('Sub').agg(sum('Marks')).display()
+####################################################################
+#Union two Df having different number of columns
+data1 = [(1,'Manish','DE'),(2,'Rani','DA'),(3,'Manju','DS')]
+clm1 = ['id','name','dept']
+data2 = [(3,'harish'),(4,'Monish'),(5,'priti')]
+clm2= ['id','name']
+
+df1= spark.createDataFrame(data1,clm1)
+df2= spark.createDataFrame(data2,clm2)
+
+df = df1.unionByName(df2,allowMissingColumns=True)
+
+####################################################################
+#Convert DF to sql tables/views
+df.createOrReplaceTempView('Emp_det')
+
+##################################################################
+#How to create table or view with the below comma seperated data
+
+d1= ('1234','2324','4545','654')
+
+%sql
+select explode(array(d1))
+
+## Convert Multiple rows into a single rows(name language eg[java,python,python,scala])
+
+inp_data= [('James','Java'),
+('James','Python'),
+('James','Python'),
+('James','Scala'),
+('Anna','PHP'),
+('Anna','JavaScript'),
+('Maria','Java'),
+('Maria','C++'),
+('Anna','HTML'),
+('Anna','PHP')]
+
+out_df = 
++-----+--------------------+
+| NAME|            Language|
++-----+--------------------+
+|James|[Java, Python, Py...|
+| Anna|[PHP, JavaScript,...|
+|Maria|         [Java, C++]|
++-----+--------------------+
+
+df2 = df.groupBy('NAME').agg(collect_list('language').alias('Language'))
+#Revert back
+df3 = df2.select('name', explode('Language').alias('language'))
