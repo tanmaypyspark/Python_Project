@@ -1,3 +1,5 @@
+import os
+os.system('cls')
 class Cognizant:
 	VALID_COUNT = 300000
 	CLIENT_DICT = {
@@ -15,11 +17,11 @@ class Cognizant:
 		self.__odc_number = odc_number
 
 	def show_details(self):
-		print(f'Your office location is: {self.location}\nBuilding Number:{self.building_id}\nFloor Number:{self.floor}')
+		print(f'Your office location is: {self.location}\nBuilding Number:{self.building_id}\nFloor Number:{self.__floor}')
     ##Using @property 
 	@property
 	def odc(self):
-		print(f'Your ODC is :{self.__odc_number}')
+		return self.__odc_number
 	@odc.setter
 	def odc(self, newODc):
 		if isinstance(newODc,int) and (1<= newODc>=5):
@@ -56,11 +58,10 @@ class Employee:
 	client = property(get_client,set_client)
 
 #object
-company1 = Cognizant('Kolkata','C II','09','01','05')
+company1 = Cognizant('Kolkata','C II','09','01',5)
 company1.show_details()
-company1.odc
-newODC_ = '10'
-print('Due to internet connectivity at ODC {company1.odc}.')
+print(f'Your ODC is: {company1.odc}')
+newODC_ = 10
+print(f'Due to internet connectivity at ODC {company1.odc}.')
 company1.odc = newODC_
-print('{company1.client_name} ODC Change to {company1.odc}')
-
+print(f'{company1.client_name} ODC Change to {company1.odc}')
