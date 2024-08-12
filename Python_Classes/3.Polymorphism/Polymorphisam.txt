@@ -1,0 +1,10 @@
+# Poly --> Multiple/ Many 
+# Morph --> Shape/form
+## In simple words, polymorphism is when a single entity can take muiltiple form
+# 1 + 1= 2; '1'+'1' --> '11'
+# In python , we achive polymorphism by below:
+# 1. Method Overriding
+# 2. Method Overloading
+# 3. Operator Overloading
+## Major benifit is that code  to read and write upon 
+

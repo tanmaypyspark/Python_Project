@@ -33,10 +33,10 @@
 					|
 				JAVA Wrapper
 					|				
-				SPARK CORE (Written in Scala,Scala is a JVM lamguage, and it always runs in the JVM)
+				SPARK CORE (Written in Scala,Scala is a JVM language, and it always runs in the JVM)
 			So we have python code in our main() method, this Python code is designed to start a Java main() method internally.
 			Our Pyspark application will start a JVM application.
-			Once we have a JVM application-->the Pyspark wrapper will call the Java weapper using Py4J connection.
+			Once we have a JVM application --> the Pyspark wrapper will call the Java weapper using Py4J connection.
 			$ What is Py4J?
 				--> Py4J allows a Python application to call a JAva application.
 			And that's how PySpark works.
@@ -63,7 +63,7 @@
 		--> A command line tool that allows you to submit the Spark applicationto the cluster.
 		General structure: spark-submit --class <main-class>--master<master-url>--deploy-mode<deploy-mode><applicaiton-jar>[application-args]
 		
-		--class   			Not applicable for PySpark [For JAVA & Sclara]
+		--class   			Not applicable for PySpark [For JAVA & Scala]
 		--master  			YARN,local[3]
 		--deploy-mode   	client or cluster
 		--conf  			spark.executor.memoryOverhead = 0.20 [default value id 10% or 0.10]
@@ -89,7 +89,7 @@
 		--> Always submit in cluster mode. It's unlikely that you submit your spark application in client mode.
 		Submit in Cluster mode for:
 			* No dependency on client machine
-			* Performance (facter as compare to client mode, because dirver is closer to the executors)
+			* Performance (faster as compare to client mode, because dirver is closer to the executors)
 		Client mode used by:
 			* spark-shell, pyspark,spark-sql
 			* Notebooks
@@ -128,16 +128,19 @@
 		So the Write exchange and the read exchange may be on two different worker nodes. It may be on the same worker, but it can be on two differfnt workers
 		so We must consider a copy of data partitions from the write exchange to the read exchange. 
 		And this copy operation is popularly known as the Shuffle/Sort operation. Shuffle/Sort isn't a plan copy of the data, a lot of things happen here.
+		
 		Summary: Shuffle/Sort will move data from the write exchange to the read exchange.
+		
 		Note: Stages ends with a wide dependency transformation and hence it requires a shuffle/sort of the data. It's an expencive operation in the Spark Cluster.
 		
 		suppose in stage 2 we have few transformation(where,select,group by) --> From stage 1 we got 2 partitions, In stage 2 spark can execute the same plan in parallel on 
 		two partitions because we have two partitions, and this is what we call Task. So we have 2 parallel Task in stage 2.
 		Note: If we don't have any wide dependency, our logical plan will be a single-stage plan. But if we have N wide-dependency, our logical plan should have N+1 stages. Task is the smallest unit of work in a Spark job.
-		The Spark driver assign these tasks to the executor and asks them to do the work. The executorneeds the following things to perform the task,
+		The Spark driver assign these tasks to the executor and asks them to do the work. The executor needs the following things to perform the task,
 			1. Task Code
-			2. Data Partition
-		No. of CPU = No. of Slots = Max. No. parallel Task can be performed = No. of parallel Threads (we call them executor slots)
+			2. Data Partition 
+			
+		No. of CPU = No. of Slots  = Max. No. parallel Task can be performed = No. of parallel Threads (we call them executor slots)
 		Suppose we have 16 CPUs but spark got 32 partitions that means 32 Task will be performed in a stage so we need 32 CPUs or slots, But we have 16 slots available.
 		In that case Spark will assign task all the available slots and remaning task will be waiting stage. 
 		
@@ -147,7 +150,7 @@
 			and marks the job failed.
 	
 	#Spark SQL Engine and Query Planning
-		Apache Spark gives you two prominent interfaces to work with data:
+		Apache Spark gives you three prominent interfaces to work with data:
 			1. Spark SQL
 			2. DataFrame API 
 			3. Dataset API (Scala & JAVA)
@@ -162,8 +165,8 @@
 				2. Logical Optimization:
 						This phase applies standard rule-based optimizations to the logical plan
 				3. Physical Planning: 
-						Spark SQL takes a logical plan and generates one or more physical plans in the physical planning phase. Physical planning applies cose-based optimization.
-						The engine will create multiple plans, calculate each plan's cose, and finally select the plan with least cost.
+						Spark SQL takes a logical plan and generates one or more physical plans in the physical planning phase. Physical planning applies cote-based optimization.
+						The engine will create multiple plans, calculate each plan's cost, and finally select the plan with least cost.
 				4. Code Generation:
 						The Engine will generate Java byte code for the RDD operations in the physical plan.
 				
@@ -322,17 +325,21 @@
 			1. Dynamically coalescing shuffle partitions
 			2. Dynamically switching join strategies
 			3. Dynamically optimizing skew joins
+		
 		* Shuffle operation is critical for Spark performance
 		* We can tune it using spark.sql.shuffle.partitions
+		
 		* Tuning spark.sql.shuffle.partitions is complex for following reasons
+		
 			* Small number of partitions cause	
 				* Large Partition size
 				* Task needs large amount of memory
 				* May cause OOM exceptions
+			
 			* Large number of partitions cause
 				* Small/tiny partitions size
 				* Many network fetch causing inefficient network I/O
-				* More burden for Spark TAsk Schedular
+				* More burden for Spark Task Schedular
 		* Enable AQE to dynamically set shuffle partitions
 			* Determine and set the best shuffle partition number
 			* Combine or coalesce the small partitions
@@ -447,6 +454,7 @@ A. RDD --> Resiliant Distributaed dataset, Immutable, resileant, Fault tolerance
 		6. Java, Scala
 		7. Schema
 		8. SQL support
+	
 	in RDD if you want to perform join, filter, group by at a same time on a large data
 	spark assume that developer is take care the optimization and know the code processing 
 	end to end, it means developer should know the execution planning.
@@ -458,7 +466,7 @@ A. Serialization refers to converting objects into a stream of bytes & vice-vers
    
    JVM(Object) --> Serialization (Conver into JVM objects into bytes) --> De-Serialization-->JVM Object
 
-Q.7 Wide vs Narrow Transformations?
+Q.7 Narrow vs Wide  Transformations?
 A. Narrow --> Narrow transformations are operations that can be computed based on a single partition of the input data. 
 			In other words, each partition of the parent RDD/DataFrame can be transformed independently, 
 			without requiring data from other partitions. Narrow transformations do not require data shuffling or data exchange 
@@ -498,6 +506,7 @@ A. This is a optimization technice. Developer used to modify the settings and pr
 			2. when dataframes has enough number of keys for parallelism.
 		
 		Note:  A Hash table is defined as a data structure used to insert, look up, and remove key-value pairs quickly
+	
 	3. SortMerge Join:
 		Shuffle Sort-merge Join (SMJ) involves shuffling of data to get the same Join key with the same worker, 
 		and then performing the Sort-merge Join operation at the partition level in the worker nodes.
@@ -569,6 +578,7 @@ A. Broadcast:
 		2. Can Update them per row basic
 		3. Can implemented counter & sum
 		4. Only write access
+		5. Deiver storage
 		bad_record = spakr.SparkContext.accumulator(0)
 		bad_record.add(1)
 
@@ -605,11 +615,11 @@ A. Partition the data according to the distinct column. It means dividing large 
    Bucketing:
 	Used to create fixed size hash-based buckets based on the values in 1 or more columns.
 	
-Q.18 Delta Live tables vs Delta Lakes
+Q.18 Delta Live tables vs Data Lakes
 A. Delta Live tables:
 	1. Also known as delta tables. it is designed for real time data processing. They offer ACID txn & streaming data processing & 
 		quering
-	2. Strore structured sata in a table format, support schema, enforsment that the structure & data type of the tables can be 
+	2. Strore structured data in a table format, support schema, enforsment that the structure & data type of the tables can be 
 		define & enforce
 	3. Provide advance data processing capability, including txn data modifing, support update & delete on existing data.
 	
@@ -677,7 +687,7 @@ A.
 					and leveraging vectorized operations for faster computations.
 	
 	Resource Management:**  Properly allocating resources like CPU cores and memory to Spark jobs ensures 
-						efficient utilization of the cluster.
+							efficient utilization of the cluster.
 
 Yes, from the beginin I try to optimize my code. I followed few steps to optimize when I develope something.
 	On my last project we have to read some inforce file but it based on some line of bussiness to avoide memory cosumption and reduce time consumtion
@@ -696,7 +706,7 @@ A. Full load is to load the data after delete all the data present in a table, u
   updated row.
 
 Q.26 How you get the data from oracle or sql to ADLS?
-
+A. linkserve, dataset, Lookup, Foreach, Copy
 Q.27 Create a rdd, and then convert it into dataframe?
 A.  
 	sc=SparkContext("Local","AppFabioCarqui")
@@ -732,10 +742,10 @@ A. In Azure Databricks, auto-scaling refers to the automatic adjustment of the n
 	There are two main types of auto-scaling available in Azure Databricks:
 	
 	Standard auto-scaling: This is the simpler option and suitable for basic workloads. It reacts to changes in cluster utilization by 
-	adding or removing nodes in predefined increments (typically 4 nodes at a time).
+							adding or removing nodes in predefined increments (typically 4 nodes at a time).
 	Enhanced auto-scaling (available in select regions): This offers more fine-grained control and optimization. 
-	It considers factors like workload volume, job completion status, and shuffle file size to dynamically adjust 
-	the number of nodes while minimizing potential performance impacts.
+						It considers factors like workload volume, job completion status, and shuffle file size to dynamically adjust 
+						the number of nodes while minimizing potential performance impacts.
 
 Q.29 what is unity catalog:
 A. Unity catalog is a databrocks premium service which offer centralized governance
@@ -804,6 +814,89 @@ A. In Apache Spark, you can interact with data using two main table types: inter
 	| Dropping the Table      | Removes data and metadata | Removes metadata only      |
 	| Sharing Data            | Not ideal                 | Can be shared               |
 
+Q.32 What are Delta tables in Databricks and why are they used?
+
+A. Delta tables are a format for storing data in Databricks that provide a reliable and scalable foundation for data lakes. 
+	They are built on top of the open-source Delta Lake project and offer several advantages over traditional data formats like Parquet or CSV.
+	
+	Why Use Delta Tables?
+	
+	Delta tables address many challenges faced in data lake environments, primarily by providing:
+	
+    ACID Transactions: Ensuring data integrity and consistency through atomic, consistent, isolated, and durable operations. 
+		This is crucial for complex data pipelines and concurrent updates.
+	
+	Time Travel: The ability to query historical versions of data, enabling data auditing, rollback, and machine learning model retraining with specific data snapshots.
+	
+    Schema Enforcement: Maintaining data quality by enforcing schema consistency across data writes.
+	
+	Unified Batch and Streaming: Seamlessly handling both batch and streaming data ingestion and processing, making it suitable for real-time analytics.
+	
+    Data Skipping: Optimizing query performance by skipping unnecessary data scans based on filters.
+    
+	Upserts: Efficiently handling updates and inserts in a single operation.
+
+	By providing these features, Delta tables offer a robust and efficient platform for building data pipelines and data lakes, 
+		making them a popular choice for organizations dealing with large and complex datasets.
+
+Q.33 How does Delta lake ensure data reliability and consistency in Delta tables?
+
+A. Delta Lake ensures data reliability and consistency through ACID transactions, 
+	which guarantee atomicity, consistency, isolation, and durability of data operations. 
+	1. It maintains a transaction log to track changes, allowing for data versioning and recovery. 
+	2.  Additionally, schema enforcement protects data integrity by preventing invalid data from being written.
+
+Q.34 Can you explain the key features of Delta tables that set them apart from traditional parquet or orc files 
+	(Hints compare the delta table with other file format on its features)
+
+A. Delta tables offer several key advantages over traditional file formats like Parquet or ORC:
+
+   1. ACID Transactions: Unlike Parquet or ORC, Delta tables support ACID transactions, ensuring data consistency and reliability through atomic, consistent, isolated, 
+					and durable operations.   
+   2. Time Travel: Delta tables allow you to query historical versions of data, enabling data auditing, rollback, and machine learning model retraining, 
+		a feature not available in Parquet or ORC. 
+   3.Schema Evolution: Delta tables support schema evolution, meaning you can add or modify columns without rewriting the entire dataset, 
+	while Parquet and ORC require static schemas.
+   4. Unified Batch and Streaming: Delta tables can handle both batch and streaming data efficiently, providing a unified platform for data processing, 
+			unlike Parquet and ORC which are primarily designed for batch processing.  
+   
+   5. Optimization: Delta tables include optimizations like data skipping and Z-ordering, improving query performance compared to Parquet or ORC.  
+   
+   These features make Delta tables a more robust and flexible choice for data lake environments.
+
+Q.35  data skipping and Z-ordering?
+
+A. Data Skipping
+	Data skipping is a performance optimization technique in Delta tables that allows the query engine to efficiently skip irrelevant data.
+	It works by maintaining statistics (min, max, count) for each column in a Delta table. When a query is executed, the query engine uses these statistics to determine 
+	which parts of the data can be safely skipped based on filter conditions. This significantly reduces the amount of data that needs to be scanned, improving query 
+	performance.  
+	
+  Z-Ordering:
+  
+	z-ordering is a technique to improve data locality within files in a Delta table. It involves sorting data based on one or more columns. 
+	This co-location of related data helps in efficient data access, especially when filtering or joining based on those columns. 
+	Z-ordering works in conjunction with data skipping to further enhance query performanc.
+
+By combining data skipping and Z-ordering, Delta tables can achieve significant performance gains, especially for complex queries and large datasets.
+
+Q.36 window function:
+A. from pyspark.sql import functions as F
+	from pyspark.sql import Window
+
+	# Assuming you have a PySpark DataFrame named 'emp_det' with columns 'dep_name' and 'salary'
+
+	# Create a WindowSpec for partitioning and ordering by 'dep_name'
+	window_spec = Window.partitionBy("dep_name").orderBy("dep_name")
+
+	# Calculate the cumulative sum of salary within each department
+	result_df = emp_det.withColumn("total_exp", F.sum("salary").over(window_spec))
+
+	# Select the desired columns
+	result_df = result_df.select("dep_name", "total_exp")
+
+	result_df.show()
+
 ######################################## DATABRICKS ####################################
 ################## DataBricks###############
 Dash configuration : - 
@@ -814,7 +907,7 @@ Dash configuration : -
 			
 ### Databricks utils:
 	dbutils:
-			fs : Manipulates the DDFS from the console
+			fs : Manipulates the DBFS from the console
 			notebook: Utilities for the control flow of a notebook
 			widgets: Methods to create and get bound value of input widgets inside notebook
 			
@@ -865,6 +958,7 @@ Dash configuration : -
 			ClientSecret = dbutils.secrets.get(scope = keyValutName, key = 'ClientSecret')
 			
 ########################################SQL #######################################
+
 Q.1 What is Normalization
 A. It's a database design technice that organizes tables in a manner that reduce redundancy (useless) & dependency of data.
     @ to avoid insertion,updation & deletetion anomaly
@@ -927,8 +1021,10 @@ A -->
 		select emp_id, emp_name,
 		row_number() over(order by salary) as row_number 
 		from emp_det
+		
 	3. RANK vs DENSE_RANK
 	select *, rank() over(partition by ab order by cd) as rn from table
+	
 	4. DENSE_RANK same approache
 	# RANK() would give the identical rows a rank of 2, then skip rank 3,4, so the next would be 5
 		where dense_rank give all the identical rows a rank of 2, but the following row would be 3,no rank skipped.
@@ -939,4 +1035,152 @@ A -->
 	select *,
 	LAG(salary) over(partition by department order by salary) as previous_salary,
 	LEAD(salary) over(partition by department order by salary) as leading_salary from table.
+
+
+Q7.List the emps whose sal is equal to the average of max and minimum
+
+%sql
+select * from emp1
+where salary = (SELECT AVG(max_min_salary) AS avg_salary_sum
+FROM (
+    SELECT MAX(salary) + MIN(salary) AS max_min_salary
+    FROM emp1
+) AS subquery)
+
+
+###
+select * from *,
+rank() over(partition by dept_id order by salary desc) as rn from tbl
+
+Q8. Union vs unionAll
+A.  Union:
+		1. COmbine the results of two or more select statements into a single results set
+		2. remove duplicates rows from the combined results set
+		3. use distinct operation to remove duplicates
+	UnionAll:
+		1. same
+		2. It includes all duplicate rows
+		3. faster as not remove duplicates
+
+####################################################### Big Data ##################################
+
+
+Q. what is Big data?
+A. Big data refers to massive and complex datasets that are difficult to store, process, and analyze using traditional methods. 
+	These datasets are characterized by three main attributes:
+	* **Volume:** The sheer amount of data is enormous, often terabytes or even petabytes in size. 
+			Traditional data processing software simply can't handle this scale.
+	* **Variety:** Big data comes in many forms, including structured data (tabular data in databases), 
+			unstructured data (text, social media posts, images, videos), and semi-structured data (data with some organization but not a strict format).
+	
+	* **Velocity:** Big data is constantly growing and changing at a rapid pace. This requires tools and techniques that can keep up with the influx of new information.
+	
+	Here are some key points about big data:
+	* **Sources:**  Data comes from various sources like social media, sensors, log files, transactions, and more, fueled by the growth of the internet of things (IoT).
+	* **Analysis:** Big data analytics helps extract valuable insights from these massive datasets, enabling better decision-making, improved customer experiences, 
+		and fraud detection.
+	* **Tools:** Specialized tools and technologies are needed to handle big data, including distributed processing systems, cloud computing, 
+				and big data frameworks like Hadoop and Spark.
+	Big data plays a crucial role in various fields like finance, healthcare, marketing, and scientific research. As data continues to grow exponentially, 
+				big data analytics will become even more important in the future.
+
+Q. Scenario based question: How you load the data using ADF without load the duplicate data(data is comming at 10:00,10:30,11:00 not cosistance) 
+	and want to ignore duplicacy
+A.			There are two main approaches to load data into Azure Data Factory (ADF) without duplicates, even with data arriving inconsistently at 10:00, 10:30, and 11:00,  Here's how you can achieve this:
+
+			**Approach 1: Using Data Flow Activity with Unique Identifier**
+
+			1. **Data Flow Activity:** Utilize a Data Flow activity within your ADF pipeline. This activity allows for data transformation and manipulation.
+			2. **Source Dataset:** Define your source dataset pointing to the location where the data arrives (e.g., Blob Storage).
+			3. **Sink Dataset:** Configure the destination dataset where the de-duplicated data will be stored (e.g., SQL Database).
+			4. **Unique Identifier:** Identify a column or combination of columns that uniquely represents a record. This will be used to determine duplicates.
+			5. **Single Partition:** Ensure your data flow has a single partition to process all data at once. This is crucial for duplicate detection across all incoming batches.
+			6. **Sort Transformation:** Add a Sort Transformation to the data flow. Sort the data based on your chosen unique identifier column(s).
+			7. **Row Number Window Function:** Apply a Row Number window function to the sorted data. This function assigns a sequential number to each row based on its position after sorting.
+			8. **Filter Transformation:** Add a Filter Transformation to the data flow. Filter the data to keep only rows where the `Row Number` is equal to 1. This ensures you keep only the first occurrence (non-duplicate) for each unique identifier.
+			9. **Sink Transformation:** Finally, use a Sink Transformation to map the filtered data (without duplicates) to your destination dataset.
+
+			**Approach 2: Using Lookup Activity with Staging Table**
+
+			1. **Staging Table:** Create a staging table in your data warehouse (e.g., Azure Synapse Analytics) to temporarily store incoming data.
+			2. **Copy Activity (Source to Staging):** Set up a Copy Activity in your ADF pipeline to copy data from the source location (Blob Storage) to the staging table.
+			3. **Lookup Activity:** Add a Lookup Activity to your pipeline. This activity allows you to compare data with an existing dataset.
+			4. **Reference Table:** Configure the Lookup activity to use the staging table as the reference table.
+			5. **Unique Identifier:** Define the same unique identifier column(s) used in Approach 1 for comparison.
+			6. **Anti-Match Filter:** Set the Lookup activity to use an Anti-Match filter. This keeps only rows from the incoming data that are not present in the staging table (i.e., non-duplicates).
+			7. **Copy Activity (Staging to Sink):** Add another Copy Activity to transfer the de-duplicated data (filtered by the Lookup activity) from the staging table to your final destination dataset (e.g., SQL Database).
+
+			**Choosing the Right Approach:**
+
+			* **Approach 1** is more efficient for smaller datasets as it processes all data in a single pass.
+			* **Approach 2** is better suited for larger datasets or scenarios where intermediate data processing might be needed before loading to the final destination.
+
+			**Additional Considerations:**
+
+			* **Incremental Loading:** If you need to handle historical data or want to keep track of changes, consider implementing mechanisms for incremental loading, ensuring you only process new or updated data.
+			* **Error Handling:** Implement proper error handling mechanisms in your ADF pipeline to address potential issues during data processing or loading.
+
+			By following these approaches and considering the additional factors, you can effectively load data into ADF without duplicates, even with inconsistently arriving data.
+
+Q. Suppose a data is comming 12kb per ns is it call big data?
+A. 
+	No, data arriving at a rate of 12 kilobytes (kB) per nanosecond (ns) wouldn't necessarily be classified as big data based solely on its velocity (speed of arrival).
+	Here's why:
+		* **Focus on Characteristics:** Big data is defined by its "three Vs" or "four Vs" which are **volume**, **variety**, 
+			and **velocity** (sometimes including **veracity**). While your scenario has high velocity (fast arrival), the data size itself isn't mentioned.
+		
+		* **12kB per ns in Context:**  While 12kB per ns sounds like a significant amount, it's essential to consider the timeframe.
+			A nanosecond (ns) is an incredibly small unit of time (one-billionth of a second).  In a single second, data arriving at 12kB per ns would translate to:
+				* 12 kB/ns * 1,000,000,000 ns/s (conversion to seconds) = 12,000,000 kB/s
+				* This is further equivalent to 12,000 MB/s (since 1 kB = 8 bits and 1 Byte (B) = 8 bits).
+	Even at 12 GB/s, the data volume might not reach the terabyte or petabyte scale typically associated with big data.
+	
+	**Here's what to consider for big data classification:**
+	* **Volume:** Is the total amount of data being generated significant? Is it measured in terabytes, petabytes, or even exabytes?
+	* **Variety:**  Does the data come in various formats (structured, unstructured, semi-structured)?
+	* **Velocity:**  Is the data arriving continuously at a high rate, requiring special processing techniques?
+	
+	If the data stream in your scenario is relatively short-lived (doesn't accumulate to a large volume) and consists of a single, well-defined format (e.g., sensor readings), it wouldn't be considered big data in the traditional sense.
+	However, the high velocity (12kB/ns) suggests it might require specialized processing techniques to handle the rapid influx of data.  This could involve real-time analytics or streaming data pipelines depending on the specific use case.
+
+Q. Hadoop vs Spark
+A. Both Hadoop and Spark are popular frameworks for handling big data, but they have some key differences:
+	
+	**Data Processing:**
+		* **Hadoop:** Designed for **batch processing** of large datasets. It breaks down tasks into smaller chunks and distributes them across 
+				multiple nodes in a cluster. This is efficient for historical data analysis or tasks that don't require real-time results.
+		* **Spark:** Offers **real-time processing** capabilities in addition to batch processing. It can store intermediate data in memory for faster processing, 
+				making it ideal for interactive analysis and iterative algorithms.
+	**Data Storage:**
+		* **Hadoop:** Relies on **HDFS (Hadoop Distributed File System)**, a distributed file system that stores data across multiple nodes. 
+				HDFS is optimized for large datasets but can have higher latency when accessing data.
+		* **Spark:** Can leverage **in-memory processing** by storing frequently accessed data in RAM for faster computations. However, this requires more RAM 
+					compared to Hadoop's reliance on disk storage.
+	**Speed and Performance:**
+		* **Hadoop:** Generally slower than Spark due to its reliance on disk access. It's suitable for large-scale, batch-oriented tasks where speed isn't a critical factor.
+		* **Spark:** Significantly faster than Hadoop for iterative algorithms and real-time processing due to its in-memory capabilities. 
+	**Scalability:**
+		* **Hadoop:** Highly scalable by adding more nodes to the cluster. This allows it to handle even larger datasets efficiently.
+		* **Spark:** Scalable by adding more nodes, but memory limitations become a factor as the cluster size increases. 
+	**Ease of Use:**
+		* **Hadoop:** Considered more complex to set up and manage compared to Spark. Requires knowledge of Java or Python for programming MapReduce jobs.
+		* **Spark:** Offers a simpler API and supports multiple programming languages like Java, Scala, Python, and R.
+	**Security:**
+		* **Hadoop:** Provides robust security features with access control and encryption capabilities.
+		* **Spark:** Security is considered less mature than Hadoop, although basic authentication methods are available.
+	
+	**Choosing Between Hadoop and Spark:**
+		* Use **Hadoop** for large-scale batch processing jobs where cost-effectiveness and scalability are priorities.
+		* Use **Spark** for real-time analytics, iterative algorithms, and applications requiring faster processing speeds.
+
+	**In many cases, organizations use both Hadoop and Spark together.**  Hadoop can handle the initial large-scale data processing,
+		while Spark can be used for more specific real-time or machine learning tasks on a subset of the data.
+
+######################################################### ADF #########################
+Key Differences
+Feature						Schedule Trigger	Tumbling Window Trigger
+Time-based					Fixed intervals		Fixed-size windows
+Data processing				Future-oriented		Past and future
+Self-dependency				No							Yes
+Pipeline association		Many-to-many			One-to-one
 	
