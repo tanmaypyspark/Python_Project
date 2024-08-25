@@ -1,0 +1,38 @@
+{
+    "CHILADANGI": {
+        "branch_code": "06581",
+        "micr_code": 712002502,
+        "address": { 
+                    "town":"CHILADANGI",
+                    "district":"HOOGHLY",
+                    "state":"WEST BENGAL",
+                    "pincode":712401
+                }
+
+
+    },
+
+    "PURSURAH": {
+        "branch_code": "03956",
+        "micr_code": 712002601,
+        "address": { 
+                    "town":"Pursurah",
+                    "district":"HOOGHLY",
+                    "state":"WEST BENGAL",
+                    "pincode":712401
+                }
+    },
+    
+    "CHAMPDANI": {
+        "branch_code": "10429",
+        "micr_code": 700002320,
+        "address": { 
+                    "town":"CHAMPDANI-BHADRESWAR",
+                    "district":"HOOGHLY",
+                    "state":"WEST BENGAL",
+                    "pincode":712401
+                }
+
+
+    }
+}
