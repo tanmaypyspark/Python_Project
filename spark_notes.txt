@@ -60,7 +60,7 @@
 		* How to deploy Spark Application?
 			* Spark-submit
 		What is a Spark-submit?
-		--> A command line tool that allows you to submit the Spark applicationto the cluster.
+		--> A command line tool that allows you to submit the Spark application to the cluster.
 		General structure: spark-submit --class <main-class>--master<master-url>--deploy-mode<deploy-mode><applicaiton-jar>[application-args]
 		
 		--class   			Not applicable for PySpark [For JAVA & Scala]
@@ -408,7 +408,7 @@ A. A slowly changing dimension is a dimension that stores & manages both current
 	1. SCD 0 : Attribute of dimension which never change their values. Like DOB, Blood_Gorup
 	2. SCD 1 : Gives Overwriting on exisiting data. (an instance where old data is overwritten with new data. 
 													The old data is lost as it is not stored anywhere)(like emp address, salary)
-	3. SCD 2 : Maintaing no of times data change (like history as creating another another dimension records) 
+	3. SCD 2 : Maintaing no of times data change (like history as creating another dimension records) 
 		(like sales data, order data)
 	4. SCD 3 : Maintaing one time history in new column. a new column is added to track the previous value.(Like
 	product pricing or financial reporting)
@@ -496,7 +496,7 @@ A. This is a optimization technice. Developer used to modify the settings and pr
 		Step 1 : 
 			Shuffling: The data from the Join tables are partitioned based on the Join key. 
 			It does shuffle the data across partitions to have the same Join keys of the record assigned to the corresponding partitions.
-		Step 2:
+		Step 2: 
 			Hash Join: A classic single node Hash Join algorithm is performed for the data on each partition.
 		
 		Note: To use the Shuffle Hash Join, spark.sql.join.preferSortMergeJoin needs to be false.
@@ -552,6 +552,7 @@ A. Persist:
 		2. Provide finer control over how & when data is stored.
 		3. Offer a balance b/w perform & storage.
 		4. use when dealing with large data
+		df.persist(StorageLevel.MEMORY_ONLY)
 	Cache:
 		1. Specific to storing data in memory.
 		2. Generally used for quickly accessing frequently used datasets
@@ -615,9 +616,9 @@ A. Partition the data according to the distinct column. It means dividing large 
    Bucketing:
 	Used to create fixed size hash-based buckets based on the values in 1 or more columns.
 	
-Q.18 Delta Live tables vs Data Lakes
+Q.18 Delta tables vs Data Lakes
 A. Delta Live tables:
-	1. Also known as delta tables. it is designed for real time data processing. They offer ACID txn & streaming data processing & 
+	1. It is designed for real time data processing. They offer ACID txn & streaming data processing & 
 		quering
 	2. Strore structured data in a table format, support schema, enforsment that the structure & data type of the tables can be 
 		define & enforce
