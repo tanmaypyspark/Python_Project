@@ -3,6 +3,8 @@ import json
 import os
 from webScrapping import *
 from Modules_check import *
+import sys
+sys.dont_write_bytecode = True
 
 # Configure the logger (do this once at the beginning of your script)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
