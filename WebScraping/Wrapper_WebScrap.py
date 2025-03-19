@@ -66,22 +66,22 @@ browserObj = Parent(setting_Param["DRIVER"],
                     setting_Param["CHROME_OPTIONS"],
                     setting_Param["DRIVER_LOCATION"])
 
-if __name__ == "__main__":
-    logger.info(f'Request Raise By:{(os.getlogin()).capitalize()}')
-    # logger.info(f"Request Raised for the following stocks: {param}")
-    ## User Details
-    user_details = getUser_Input(config['UserInput'])
-    for stock_name, url in user_details.items():
-        logger.info(f"Request Raised for the following stocks: {stock_name}")
-        sitenam = url.split('/')[2] 
-        if 'moneycontrol' in sitenam:
-            param = config["MoneyControl"]
-            # Site Config
-            element_selector = param["element_selector"]
-            ts_selector = param["ts_selector"] 
-            author_selector = param["author_selector"]
-            # Calling the class
-            MC_Obj = Moneycontrolscraper(browserObj, url, element_selector, ts_selector, author_selector)
-            MC_Obj.save_Comments(stock_name)
-        else:
-            logger.error(f"Error: Unsupported site '{sitenam}'")
+# if __name__ == "__main__":
+#     logger.info(f'Request Raise By:{(os.getlogin()).capitalize()}')
+#     # logger.info(f"Request Raised for the following stocks: {param}")
+#     ## User Details
+#     user_details = getUser_Input(config['UserInput'])
+#     for stock_name, url in user_details.items():
+#         logger.info(f"Request Raised for the following stocks: {stock_name}")
+#         sitenam = url.split('/')[2] 
+#         if 'moneycontrol' in sitenam:
+#             param = config["MoneyControl"]
+#             # Site Config
+#             element_selector = param["element_selector"]
+#             ts_selector = param["ts_selector"] 
+#             author_selector = param["author_selector"]
+#             # Calling the class
+#             MC_Obj = Moneycontrolscraper(browserObj, url, element_selector, ts_selector, author_selector)
+#             MC_Obj.save_Comments(stock_name)
+#         else:
+#             logger.error(f"Error: Unsupported site '{sitenam}'")

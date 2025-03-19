@@ -32,7 +32,7 @@ def is_module_installed(module_name):
 
 def preSetupCheck():
     # Example usage:
-    required_modules = ["pandas", "selenium", "beautifulsoup4", "logging"] #beautifuolsoup4 is the correct name.
+    required_modules = ["pandas", "selenium", "beautifulsoup4", "bs4", "logging"] #beautifuolsoup4 is the correct name.
     install_missing_modules(required_modules)
 
     # Now, you can safely import and use the modules in your main script:
