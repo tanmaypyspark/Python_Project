@@ -10,7 +10,7 @@
     "MoneyControl":{
         "element_selector" : "postItem_text_paragraph__3XhZQ",
         "ts_selector" : "postItem_price1__3ojct",
-        "author_selector" : "postItem_heading__2odZU"
+        "author_selector" : "postItem_username__2r1i_"
     }
 }
 
