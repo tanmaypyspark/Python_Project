@@ -155,7 +155,15 @@ class Moneycontrolscraper:
         ''' Convert the comments to a pandas dataframe'''
         all_comments = self.__find_Comments(stock_name)
         df = pd.DataFrame(all_comments)
-        df = df.sort_values(by='Timestamp', ascending=True)
+        
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'], format='%d-%m-%Y %H:%M', errors='coerce')
+        # # Fill rows with NaT (Not a Time) values in 'Timestamp'
+        latest_timestamp = df['Timestamp'].max()
+        df['Timestamp'] = df['Timestamp'].fillna(latest_timestamp)
+        # df = df.dropna(subset=['Timestamp'])
+
+        # Sort by timestamp in descending order (latest first)
+        df = df.sort_values(by='Timestamp', ascending=False)
         return df
     
     def show_Comments(self, stock_name):
