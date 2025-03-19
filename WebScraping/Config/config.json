@@ -1,0 +1,16 @@
+{
+    "UserInput" : "Config\\config.conf",
+    "settings" : {
+        "DRIVER": 30,
+        "SCROLL_PAUSE_TIME": 5,
+        "MAX_SCROLLS": 100,
+        "CHROME_OPTIONS": "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "DRIVER_LOCATION": "444556454c4f504544206279203a2054414e414d59204d414e44414c"
+    },
+    "MoneyControl":{
+        "element_selector" : "postItem_text_paragraph__3XhZQ",
+        "ts_selector" : "postItem_price1__3ojct",
+        "author_selector" : "postItem_heading__2odZU"
+    }
+}
+
