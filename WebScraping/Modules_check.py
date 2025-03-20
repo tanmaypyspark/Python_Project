@@ -1,17 +1,19 @@
 import subprocess
 import importlib.util
 import os
-
+os.getcwd()
 def get_pip_path():
     """
     Returns the path to the pip executable in the clean_env virtual environment.
     """
-    venv_path = os.path.join("clean_env", "Scripts", "pip")
+    base_path = os.getcwd()
+    venv_path = os.path.join(base_path,"clean_env", "Scripts", "pip.exe")
     if os.path.exists(venv_path):
         return venv_path
     else:
         return "pip"  # Fallback to the default pip if clean_env is not found
-print(get_pip_path())
+# print(get_pip_path())
+# print(os.getcwd())
 def install_missing_modules(modules):
     """
     Installs missing Python modules using pip.
@@ -20,12 +22,11 @@ def install_missing_modules(modules):
         modules: A list of module names (strings).
     """
     pip_path = get_pip_path()
-    print(pip_path)
     for module in modules:
         if not is_module_installed(module):
             print(f"Installing {module}...")
             try:
-                subprocess.check_call(["pip", "install", module])
+                subprocess.check_call([pip_path, "install", module])
                 print(f"{module} installed successfully.")
             except subprocess.CalledProcessError as e:
                 print(f"Error installing {module}: {e}")
@@ -41,7 +42,7 @@ def upgrade_modules(modules):
     for module in modules:
         print(f"Upgrading {module}...")
         try:
-            subprocess.check_call(["pip", "install", "--upgrade", module])
+            subprocess.check_call([pip_path, "install", "--upgrade", module])
             print(f"{module} upgraded successfully.")
         except subprocess.CalledProcessError as e:
             print(f"Error upgrading {module}: {e}")
@@ -59,6 +60,19 @@ def is_module_installed(module_name):
   """
   return importlib.util.find_spec(module_name) is not None
 
+def check_module_installation_path(module_name):
+    """
+    Prints the installation path of a specific module.
+
+    Args:
+        module_name: The name of the module (string).
+    """
+    try:
+        module = importlib.import_module(module_name)
+        print(f"{module_name} is installed at: {module.__file__}")
+    except ImportError:
+        print(f"{module_name} is not installed.")
+
 def preSetupCheck():
     # Example usage:
     required_modules = ["pandas", "selenium", "beautifulsoup4", "bs4", "logging"] #beautifuolsoup4 is the correct name.
@@ -75,6 +89,8 @@ def preSetupCheck():
 
         print("All modules are available.")
         # Your main script logic here...
+        for module in required_modules:
+            check_module_installation_path(module)
         return True
 
     except ImportError as e:
