@@ -12,8 +12,7 @@ def get_pip_path():
         return venv_path
     else:
         return "pip"  # Fallback to the default pip if clean_env is not found
-# print(get_pip_path())
-# print(os.getcwd())
+
 def install_missing_modules(modules):
     """
     Installs missing Python modules using pip.
@@ -46,7 +45,6 @@ def upgrade_modules(modules):
             print(f"{module} upgraded successfully.")
         except subprocess.CalledProcessError as e:
             print(f"Error upgrading {module}: {e}")
-
 
 def is_module_installed(module_name):
   """
