@@ -73,8 +73,8 @@ browserObj = Parent(setting_Param["DRIVER"],
 if __name__ == "__main__":
     logger.info(f'Request Raise By:{(os.getlogin()).capitalize()}')
     # logger.info(f"Request Raised for the following stocks: {param}")
-    self.driver_loc = bytes.fromhex(setting_Param["DRIVER_LOCATION"]).decode('utf-8')
-    logger.info(self.driver_loc)
+    driver_loc = bytes.fromhex(setting_Param["DRIVER_LOCATION"]).decode('utf-8')
+    logger.info(driver_loc)
     ## User Details
     user_details = getUser_Input(config['UserInput'])
     for stock_name, url in user_details.items():

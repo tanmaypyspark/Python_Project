@@ -1,6 +1,17 @@
 import subprocess
 import importlib.util
+import os
 
+def get_pip_path():
+    """
+    Returns the path to the pip executable in the clean_env virtual environment.
+    """
+    venv_path = os.path.join("clean_env", "Scripts", "pip")
+    if os.path.exists(venv_path):
+        return venv_path
+    else:
+        return "pip"  # Fallback to the default pip if clean_env is not found
+print(get_pip_path())
 def install_missing_modules(modules):
     """
     Installs missing Python modules using pip.
@@ -9,6 +20,7 @@ def install_missing_modules(modules):
         modules: A list of module names (strings).
     """
     pip_path = get_pip_path()
+    print(pip_path)
     for module in modules:
         if not is_module_installed(module):
             print(f"Installing {module}...")
