@@ -33,10 +33,10 @@ class Moneycontrolscraper:
         self.driver_loc = bytes.fromhex(Moneycontrolscraper.DRIVER_LOCATION).decode('utf-8')
         '''Start the Scraper'''
         logger.info("Scraper has been started....")
-        logger.info(self.driver_loc)
+        # logger.info(self.driver_loc)
                 
     def __convert_time_to_datetime(self, time_str):
-        """Converts relative or absolute time string to "DD-MM-YYYY HH:MM" format."""
+        """Converts relative or absolute time string to 'DD-MM-YYYY HH:MM' format."""
         try:
             if "mins" in time_str or "secs" in time_str:
                 parts = time_str.split()
@@ -58,19 +58,31 @@ class Moneycontrolscraper:
 
             else:
                 # Absolute time (e.g., "10:12 AM Feb 12th" or "7:29 AM Aug 28th")
-                time_str = time_str.replace("th", "").replace("st","").replace("nd","").replace("rd","") #remove suffixes
-                try:
-                    dt_object = datetime.datetime.strptime(time_str, "%I:%M %p %b %d %Y")
-                    return dt_object.strftime("%d-%m-%Y %H:%M")
-                except ValueError:
-                    #if year is not present, add current year.
-                    now = datetime.datetime.now()
-                    dt_object = datetime.datetime.strptime(time_str + " " + str(now.year), "%I:%M %p %b %d %Y")
-                    #check if the parsed date is in the future. If so, subtract one year.
-                    if dt_object > now :
-                        dt_object = datetime.datetime.strptime(time_str + " " + str(now.year -1), "%I:%M %p %b %d %Y")
+                time_str = time_str.replace("th", "").replace("st", "").replace("nd", "").replace("rd", "")  # Remove suffixes
+                now = datetime.datetime.now()
 
-                    return dt_object.strftime("%d-%m-%Y %H:%M")
+                # Try parsing with the current year
+                try:
+                    dt_object = datetime.datetime.strptime(time_str + f" {now.year}", "%I:%M %p %b %d %Y")
+                except ValueError:
+                    # If parsing fails, check if it's a leap year issue
+                    if "Feb 29" in time_str:
+                        try:
+                            # Try parsing with the previous leap year
+                            leap_year = now.year - (now.year % 4)
+                            dt_object = datetime.datetime.strptime(time_str + f" {leap_year}", "%I:%M %p %b %d %Y")
+                        except ValueError:
+                            logger.warning(f"Invalid time string: {time_str}")
+                            return None
+                    else:
+                        logger.warning(f"Invalid time string: {time_str}")
+                        return None
+
+                # Check if the parsed date is in the future. If so, subtract one year.
+                if dt_object > now:
+                    dt_object = datetime.datetime.strptime(time_str + f" {now.year - 1}", "%I:%M %p %b %d %Y")
+
+                return dt_object.strftime("%d-%m-%Y %H:%M")
 
         except ValueError:
             logger.warning(f"Invalid time string: {time_str}")
@@ -80,6 +92,9 @@ class Moneycontrolscraper:
         """Scrapes data from a page with infinite scrolling."""
         chrome_options = Options()
         chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--ignore-certificate-errors")  # Ignore SSL certificate errors
+        chrome_options.add_argument("--disable-web-security")       # Disable web security
+        chrome_options.add_argument("--allow-insecure-localhost")   # Allow insecure localhost connections
         chrome_options.add_argument(Moneycontrolscraper.CHROME_OPTIONS)
         driver = webdriver.Chrome(options=chrome_options)
         logger.info("Fetch the data from the website....")

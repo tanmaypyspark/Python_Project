@@ -4,7 +4,9 @@ import os
 from webScrapping import *
 from Modules_check import *
 import sys
+import shutil
 sys.dont_write_bytecode = True
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
 # Configure the logger (do this once at the beginning of your script)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -71,6 +73,8 @@ browserObj = Parent(setting_Param["DRIVER"],
 if __name__ == "__main__":
     logger.info(f'Request Raise By:{(os.getlogin()).capitalize()}')
     # logger.info(f"Request Raised for the following stocks: {param}")
+    self.driver_loc = bytes.fromhex(setting_Param["DRIVER_LOCATION"]).decode('utf-8')
+    logger.info(self.driver_loc)
     ## User Details
     user_details = getUser_Input(config['UserInput'])
     for stock_name, url in user_details.items():
@@ -87,3 +91,6 @@ if __name__ == "__main__":
             MC_Obj.save_Comments(stock_name)
         else:
             logger.error(f"Error: Unsupported site '{sitenam}'")
+    
+    if os.path.exists("__pycache__"):
+        shutil.rmtree("__pycache__")
