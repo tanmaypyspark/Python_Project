@@ -28,8 +28,6 @@ class Moneycontrolscraper:
         Moneycontrolscraper.CHROME_OPTIONS = parent_instance.CHROME_OPTIONS
         Moneycontrolscraper.DRIVER_LOCATION = parent_instance.DRIVER_LOCATION
         # ****************************************************
-        
-        # ***********************************
         self.driver_loc = bytes.fromhex(Moneycontrolscraper.DRIVER_LOCATION).decode('utf-8')
         '''Start the Scraper'''
         logger.info("Scraper has been started....")
