@@ -155,6 +155,7 @@ class Moneycontrolscraper:
         ''' Convert the comments to a pandas dataframe'''
         all_comments = self.__find_Comments(stock_name)
         df = pd.DataFrame(all_comments)
+        df = df.drop_duplicates()
         
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], format='%d-%m-%Y %H:%M', errors='coerce')
         # # Fill rows with NaT (Not a Time) values in 'Timestamp'
