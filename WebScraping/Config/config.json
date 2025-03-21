@@ -1,5 +1,8 @@
 {
     "UserInput" : "Config\\config.conf",
+    "output_path": "Output\\WebData\\",
+    "Stagging_path": "Output\\Stagging\\",
+    "analysis_path": "Output\\Analysis\\",
     "settings" : {
         "DRIVER": 30,
         "SCROLL_PAUSE_TIME": 5,
@@ -11,6 +14,10 @@
         "element_selector" : "postItem_text_paragraph__3XhZQ",
         "ts_selector" : "postItem_price1__3ojct",
         "author_selector" : "postItem_username__2r1i_"
+    },
+    "Modules":{
+        "required_modules" : ["pandas", "selenium", "beautifulsoup4", "bs4", "logging", "nltk", "googletrans==3.1.0a0"],
+        "modules_to_upgrade": ["certifi"]
     }
 }
 

@@ -1,7 +1,27 @@
 import subprocess
 import importlib.util
 import os
+import json
+import pkg_resources
+# from wrapperWebScrap import getConfig
+
+def getConfig(filepath):
+    try:
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+            return data
+    except FileNotFoundError:
+        print(f"Error: File not found at {filepath}")
+        return None
+    except json.JSONDecodeError:
+        print(f"Error: Invalid JSON format in {filepath}")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return None
+
 os.getcwd()
+
 def get_pip_path():
     """
     Returns the path to the pip executable in the clean_env virtual environment.
@@ -13,6 +33,23 @@ def get_pip_path():
     else:
         return "pip"  # Fallback to the default pip if clean_env is not found
 
+def is_module_installed(module_name):
+    """
+    Checks if a Python module is installed, including version-specific checks.
+
+    Args:
+        module_name: The name of the module (string), optionally with a version (e.g., 'googletrans==3.1.0a0').
+
+    Returns:
+        True if the module is installed, False otherwise.
+    """
+    try:
+        # Check if a specific version is required
+        pkg_resources.require(module_name)
+        return True
+    except (pkg_resources.DistributionNotFound, pkg_resources.VersionConflict):
+        return False
+
 def install_missing_modules(modules):
     """
     Installs missing Python modules using pip.
@@ -22,6 +59,7 @@ def install_missing_modules(modules):
     """
     pip_path = get_pip_path()
     for module in modules:
+        print(f"Checking if {module} is installed...")
         if not is_module_installed(module):
             print(f"Installing {module}...")
             try:
@@ -46,17 +84,17 @@ def upgrade_modules(modules):
         except subprocess.CalledProcessError as e:
             print(f"Error upgrading {module}: {e}")
 
-def is_module_installed(module_name):
-  """
-  Checks if a Python module is installed.
+# def is_module_installed(module_name):
+#   """
+#   Checks if a Python module is installed.
 
-  Args:
-      module_name: The name of the module (string).
+#   Args:
+#       module_name: The name of the module (string).
 
-  Returns:
-      True if the module is installed, False otherwise.
-  """
-  return importlib.util.find_spec(module_name) is not None
+#   Returns:
+#       True if the module is installed, False otherwise.
+#   """
+#   return importlib.util.find_spec(module_name) is not None
 
 def check_module_installation_path(module_name):
     """
@@ -71,19 +109,45 @@ def check_module_installation_path(module_name):
     except ImportError:
         print(f"{module_name} is not installed.")
 
+def dynamic_import(modules):
+    """
+    Dynamically imports modules from a list.
+
+    Args:
+        modules: A list of module names (strings).
+
+    Returns:
+        A dictionary with module names as keys and imported modules as values.
+    """
+    imported_modules = {}
+    for module_name in modules:
+        try:
+            imported_modules[module_name] = importlib.import_module(module_name)
+            print(f"Successfully imported {module_name}")
+        except ImportError as e:
+            print(f"Error importing {module_name}: {e}")
+    return imported_modules
+
 def preSetupCheck():
     # Example usage:
-    required_modules = ["pandas", "selenium", "beautifulsoup4", "bs4", "logging"] #beautifuolsoup4 is the correct name.
+    config_path = r'Config\config.json'
+    config = getConfig(config_path)
+    
+    package = config["Modules"]
+    required_modules = package["required_modules"] #beautifuolsoup4 is the correct name.
     install_missing_modules(required_modules)
     # Modules to upgrade
-    modules_to_upgrade = ["certifi"]  # Add other modules here if needed
+    modules_to_upgrade = package["modules_to_upgrade"]  # Add other modules here if needed
     upgrade_modules(modules_to_upgrade)
     # Now, you can safely import and use the modules in your main script:
     try:
-        import pandas
-        import selenium
-        from bs4 import BeautifulSoup
-        import logging
+        # Dynamically import modules
+        imported_modules = dynamic_import(required_modules + modules_to_upgrade)
+        # import pandas
+        # import selenium
+        # from bs4 import BeautifulSoup
+        # import logging
+        # import 
 
         print("All modules are available.")
         # Your main script logic here...
@@ -94,3 +158,4 @@ def preSetupCheck():
     except ImportError as e:
         print(f"Module import error after installation: {e}")
         return False
+# preSetupCheck()
