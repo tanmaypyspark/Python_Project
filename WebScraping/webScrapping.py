@@ -88,6 +88,7 @@ class Moneycontrolscraper:
     
     def __scrape_infinite_scroll(self):
         """Scrapes data from a page with infinite scrolling."""
+        logger.info(f"Opening the {self.url}...")
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--ignore-certificate-errors")  # Ignore SSL certificate errors
@@ -196,7 +197,7 @@ class Moneycontrolscraper:
         data = self.__Convert_to_DataFrame(stock_name)
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")  # Format: YYYYMMDD_HHMMSS
-        path = f"output/{stock_name.replace(' ', '').replace('  ','')}/"
+        path = f"Output/WebData/{stock_name.replace(' ', '').replace('  ','')}/"
         self.check_dir(path)
-        data.to_csv(f"{path}/comments_{stock_name}_{timestamp}.csv", index=False) #BASE_PATH + "comments.csv"
+        data.to_csv(f"{path}/comments_{stock_name.replace(' ', '').replace('  ','')}_{timestamp}.csv", index=False) #BASE_PATH + "comments.csv"
         logger.info(f"File has been generated successfully!!")
